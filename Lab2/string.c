@@ -28,8 +28,9 @@ int strlen(char *s) {
   return sum;
 }
 int strcmp(char *s1, char *s2) {
+  int i;
   if (strlen(s1) != strlen(s2)) { return 1; }
-  for (int i = 0; i < strlen(s1); i++) {
+  for (i = 0; i < strlen(s1); i++) {
     if (s1[i] != s2[i]) { return 1; }
   }
   return 0;
@@ -44,7 +45,8 @@ int strcpy(char *dest, char *src) {
   return 1;
 }
 int strncmp(char *s1, char *s2, int n) {
-  for (int i = 0; i*sizeof(char) < n; i++) {
+  int i;
+  for (i= 0; i*sizeof(char) < n; i++) {
     if (s1[i] != s2[i]) { return 1; }
   }
   return 0;
@@ -59,7 +61,8 @@ int strncpy(char *dest, char *src, int n) {
   return 1;
 }
 int memset(char *dest, char c, int n) {
-  for (int i = 0; i*sizeof(char) < n && dest[i] != '\0'; i++) {
+  int i;
+  for (i = 0; i*sizeof(char) < n && dest[i] != '\0'; i++) {
     dest[i] = c;
   }
 }

@@ -13,9 +13,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ********************************************************************/
-
-#include <stdarg.h>     // for variable arguments used in fuprintf
-
 #define DR   0x00
 #define FR   0x18
 
@@ -33,12 +30,27 @@ int uart_init()
 {
   int i; UART *up;
 
+      //for realview-pbx-a9
+  uart[1].base = (char *)(0x1000A000);
+  uart[2].base = (char *)(0x1000B000);
+  uart[3].base = (char *)(0x1000C000);
+  uart[0].base = (char *)(0x10009000);
+
+
+  uart[0].n = 0;
+  uart[1].n = 1;
+  uart[2].n = 2;
+  uart[3].n = 3;
+
+        // for versatilepb:     ARM PL011
+  /*
   for (i=0; i<4; i++){
     up = &uart[i];
-    up->base = (char *)(0x1000A000 + i*0x1000);     // A000, B000, C000
+    up->base = (char *)(0x101F1000 + i*0x1000);     // A000, B000, C000
     up->n = i;
   }
   uart[3].base = (char *)(0x10009000); // uart3 at 0x10009000
+  */ 
 }
 
 int ugetc(UART *up)
@@ -53,9 +65,9 @@ int uputc(UART *up, char c)
   *(up->base + DR) = c;
 }
 
-int ugets(UART *up, char *s)
+int ugets(UART *up, char *s)          // s is an address, remember this or you'll be in trouble
 {
-  while ((*s = (char)ugetc(up)) != 13){
+  while ((*s = (char)ugetc(up)) != '\r'){
     uputc(up, *s);
     s++;
   }
@@ -68,60 +80,68 @@ int uprints(UART *up, char *s)
     uputc(up, *s++);
 }
 
-int uprinti(UART *up, int i)      // ex: 580    0  8  5
+int uprinti(UART *up, int i)
 {
-  int arr[5];
-  int j;
-  if (i<0) { uputc(up, '-'); }
+  if (i<0) { uputc(up, '-'); i*=-1; }
   if (i==0) { uputc(up, '0'); return 1;}
 
-  j=0;
-  while (i != 0) {
-    arr[j++] = i%10;
-    i/=10;
-  }
-  while (j>=0) {
-    uputc(up, arr[j]);
-    j--;
+  uprintu(up, i);
+}
+
+int uprintu(UART *up, int i)
+{
+  if (i==0){ uputc(up, '0'); }
+  else {
+    upru(up, i);
   }
 }
 
+int upru(UART *up, int i) {
+  char c;
+  if (i) {
+    c = (i%10) + '0';
+    upru(up, i/10);
+  }
+  uputc(up,c);
+}
+
 int fuprintf(UART *up, char *fmt, ...) {
+  int* ip;
+  char* cp;
   int flag;
-  va_list args;
   int i;
   i=0;
   flag = 0;
+  ip = (int *)&fmt+1;
+  cp = fmt;
 
-  va_start(args, fmt);
-
-  while(*fmt) {
+  while(*cp) {
     if (flag) {
-      switch(*fmt){
+      switch(*cp){
         case 'd':     //integer
-          uprinti(up, va_arg(args, int));
+          uprinti(up, *ip);
           break;
         case 'x':     // unsigned int in HEX
           break;
         case 's':     // string
-          uprints(up, va_arg(args, char*));
+          uprints(up, (char* )*ip);
           break;
         case 'c':     // char
-          uputc(up, va_arg(args, char));
+          uputc(up, *ip);
           break;
         default:
           break;
       }
       i++;
+      ip++;
       flag = 0;
     }
-    else if (*fmt!='%'){
-      uputc(up, *fmt);
+    else if (*cp!='%'){
+      uputc(up, *cp);
     }
 
-    if (*fmt=='%') { flag = 1; }
+    if (*cp=='%') { flag = 1; }
 
-    *fmt++;
+    *cp++;
   }
-  va_end(args);
 }
