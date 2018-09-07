@@ -24,4 +24,4 @@ read dummy
 #-serial mon:stdio -serial /dev/pts/5
 
 qemu-system-arm -M realview-pbx-a9 -m 128M -kernel t.bin \
--serial mon:stdio -serial /dev/pts/5
+-serial mon:stdio -serial /dev/pts/5 -serial /dev/pts/18 -serial /dev/pts/19

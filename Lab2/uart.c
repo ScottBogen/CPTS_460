@@ -31,10 +31,10 @@ int uart_init()
   int i; UART *up;
 
       //for realview-pbx-a9
+  uart[0].base = (char *)(0x10009000);
   uart[1].base = (char *)(0x1000A000);
   uart[2].base = (char *)(0x1000B000);
   uart[3].base = (char *)(0x1000C000);
-  uart[0].base = (char *)(0x10009000);
 
 
   uart[0].n = 0;
@@ -50,7 +50,7 @@ int uart_init()
     up->n = i;
   }
   uart[3].base = (char *)(0x10009000); // uart3 at 0x10009000
-  */ 
+  */
 }
 
 int ugetc(UART *up)
@@ -106,42 +106,26 @@ int upru(UART *up, int i) {
 }
 
 int fuprintf(UART *up, char *fmt, ...) {
-  int* ip;
-  char* cp;
-  int flag;
-  int i;
-  i=0;
-  flag = 0;
-  ip = (int *)&fmt+1;
-  cp = fmt;
-
-  while(*cp) {
-    if (flag) {
-      switch(*cp){
-        case 'd':     //integer
-          uprinti(up, *ip);
-          break;
-        case 'x':     // unsigned int in HEX
-          break;
-        case 's':     // string
-          uprints(up, (char* )*ip);
-          break;
-        case 'c':     // char
-          uputc(up, *ip);
-          break;
-        default:
-          break;
-      }
-      i++;
-      ip++;
-      flag = 0;
-    }
-    else if (*cp!='%'){
+  char *cp = fmt;
+  int *ip = (int *)&fmt + 1;
+  while (*cp) {
+    if (*cp != '%') {
       uputc(up, *cp);
+      if (*cp=='\n') {
+        uputc(up, '\r');
+      }
+      cp++;
+      continue;
     }
+    cp++;
 
-    if (*cp=='%') { flag = 1; }
-
-    *cp++;
+    switch(*cp) {
+      case 'c':   uputc(up, (char  )*ip);  break;
+      case 's': uprints(up, (char *)*ip);  break;
+      case 'u': uprintu(up, (u32   )*ip);  break;
+      case 'd': uprinti(up, (int   )*ip);  break;
+    }
+    cp++;
+    ip++;
   }
 }

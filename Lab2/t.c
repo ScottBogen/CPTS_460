@@ -54,18 +54,12 @@ int main()
 
   uart_init();
   UART *up;
-
-  /*
-  for (i=0; i<4; i++) {
-    up = &uart[i];
-    fuprintf(up, "%s", "enter a line from this UART: ");
-    ugets(up,string);
-    fuprintf(up, "     ECHO %s\n", string);
-    fuprintf(up,"ready to continue...\n");
+  for (i=0; i<4; i++){
+      up = &uart[i];
+      uprints(up, "enter a line from this UART : ");
+      ugets(up, string);
+      uprints(up, "    ECHO : "); uprints(up, string); uprints(up, "\n\r");
   }
-  */
-
-
 
   up = &uart[0];
   uprints(up, "Enter lines from UART terminal, enter quit to exit\n\r");
