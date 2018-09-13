@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 
 int strlen(char *s);
 int strcmp(char *s1, char *s2);
@@ -8,18 +6,8 @@ int strncpy(char *dest, char *src, int n);
 int strncmp(char *s1, char *s2, int n);
 int memcpy(char *dest, char *src, int n);
 int memset(char *dest, char c, int n);
-/*
-int main() {
 
-  char s[20] = "Computer";
-  char d[20];
-  mmemset(d,0,20);
-  mmemcpy(d, s, 4);
-  printf("%s\n",d);
 
-  return 0;
-}
-*/
 int strlen(char *s) {
   int sum = 0;
   while(*s++) {

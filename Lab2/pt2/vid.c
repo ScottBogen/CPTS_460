@@ -339,6 +339,8 @@ int kprintf(char *fmt,...)
   }
 }
 
+
+// p points to start of bmp file in .o: binary_wsu_bmp_start
 int show_bmp(char *p, int startRow, int startCol)
 {
    int img_height, img_width, pixel, rsize, row, column;
@@ -368,7 +370,7 @@ int show_bmp(char *p, int startRow, int startCol)
          pp += 3;    // advance pp to next pixel
          i++;
      }
-     p -= rsize * 2;     // go to preceding row
+     p -= rsize * 2;     // go to preceding row, skip 1
    }
    uprintf("\nBMP image img_height=%d width=%d\n", img_height, img_width);
 }
