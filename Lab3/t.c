@@ -95,7 +95,7 @@ void IRQ_handler()
           kbd_handler();
        }
     }
-    
+
     /*
     unsigned int mode = find_cpsr();
     kprintf("----- MODE: %x\t\t", mode);
@@ -151,18 +151,6 @@ int main()
    kprintf("C3.2 start: test timer KBD drivers by interrupts\n");
    timer_init();
    kbd_init();
-
-   ////////////////////////////////////////////
-   // IRQ mode = 10010 (0x12)
-   // SVC mode = 10011 (0x13)
-   unsigned int mode = find_cpsr();
-
-   kprintf("----- MODE: %x\t\t", mode);
-   if      (mode == 0x12) { kprintf("(IRQ)");        }
-   else if (mode == 0x13) { kprintf("(SVC)");        }
-   else                   { kprintf("(OTHER MODE)"); }
-   kprintf(" -----\n");
-   ////////////////////////////////////////////
 
    /***************
    for (i=0; i<4; i++){
