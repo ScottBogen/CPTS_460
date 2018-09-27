@@ -89,11 +89,31 @@ PROC *kfork(int func, int priority)
     printf("dequeued proc#%d\n", p->pid);
   }
 
-  // part 6 probably here 
+  // part 6 here 
   p->status = READY;
   p->priority = priority;
   p->ppid = running->pid;
   p->parent = running;
+
+
+  // this area reserved for PROC binary tree work.
+
+  // when a PROC inits, it must be placed in its parent's child list.
+
+  // if parent has no children, make it the child.
+  if (p->parent->child == NULL) {
+    p->parent->child = p;
+  }
+
+  // else go to the child and insert it as the last child.
+  else { 
+    PROC* temp = p->parent->child;
+    while (temp->sibling != NULL) {
+      temp = temp->sibling;
+    } 
+    // temp-> sibling is now null;
+    temp->sibling = p;
+  }
   
   // set kstack to resume to body
   // stack = r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r14
