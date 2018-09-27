@@ -21,13 +21,18 @@ typedef struct proc{
 */
 
 // enter p into queue by priority
+/*
 int enqueue(PROC** queue, PROC *p) {
 
   int SR = int_off();  // IRQ interrupts off, return CPSR
   PROC *qcur = queue;
 
+  printf("attempting nqueue with proc p and pid %d\n", p->pid);
+  printList("queue", queue);
+
   // list is empty
   if (qcur == NULL) {
+    printf("Putting p in empty queue\n");
     qcur = &p;
     qcur->parent = qcur;
   }
@@ -36,29 +41,71 @@ int enqueue(PROC** queue, PROC *p) {
   else {
     while (qcur->next != NULL) {
       if (p->priority < qcur->priority) {       // insert p here
-        qcur->parent->next = p;
+        printf("\ninserting %d after %d\n", p->pid, qcur->pid);
+        printf("p priority = %d, qcur priority = %d\n", p->priority, qcur->priority);
+        qcur->parent->next = &p;
         p->parent = qcur->parent;
         p->next = qcur;
-        qcur->parent = p;
+        qcur->parent = &p;
         break;
       }
       else {
+        printf("skipping pid=%d with priority %d", qcur->pid, qcur->priority);
         qcur = qcur->next;
       }
     }
+
     // we may be at the end of the list...
     if (qcur->next == NULL) {
       qcur->next = p;
       p->parent = qcur;
     }
+
   }
 
   int_on(SR);          //  restore CPSR
 }
+*/
+
+int enqueue(PROC **queue, PROC *p)
+{
+  int SR = int_off();
+  //grap front of queue;
+  PROC *qp = *queue;
+
+  //empty queue
+  if (!qp ) {
+    p->next = qp;
+    *queue = p;
+    return 1;
+  }
+  //else we should be at front
+  if(p->priority > qp->priority)
+  {
+    //set to top
+    p->next = qp;
+    *queue = p;
+    int_on(SR);
+    return 1;
+  }
+
+  //else at least one node to find place
+  //check p->priority against the NEXT items->priority to make insert easier
+  while(qp->next && p->priority <= (qp->next)->priority)
+  {
+    //move the thing to the next thing ;)
+    qp = qp->next;
+  }
+  //insert p into list after qp
+  p->next = qp->next;
+  qp->next = p;
+  int_on(SR);
+
+  return 1;
+}
 
 // remove and return first PROC from queue
-PROC *dequeue(PROC **queue)
-{
+PROC *dequeue(PROC **queue) {
   int SR = int_off();  // IRQ interrupts off, return CPSR
   PROC* p = queue;
 
@@ -86,6 +133,5 @@ int printList(char *name, PROC *p)
     kprintf("[%d%d]->", p->pid, p->priority);
     p = p->next;
   }
-
   kprintf("NULL\n");
 }

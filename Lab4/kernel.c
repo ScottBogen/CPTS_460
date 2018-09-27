@@ -173,12 +173,16 @@ int body(int pid, int ppid, int func, int priority)
     kprintf("PROC || pid:%d, ppid:%d, func:%x, priority:%d\n",
       pid, ppid, func, priority);
 
+    printf("freelist:::\n");
+    printList("freeList",freeList);
 
     kprintf("proc %d running, parent = %d  ", running->pid, running->ppid);
     kprintf("input a char [s|f|q] : ");
     c = kgetc();
 
     printf("%c\n", c);
+
+
 
     switch(c){
       case 's': tswitch();           break;
