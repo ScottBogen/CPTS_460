@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define  BLOCK  3
 #define  ZOMBIE 4
 #define  printf  kprintf
- 
+
 typedef struct proc{
   struct proc *next;
   int    *ksp;
@@ -44,9 +44,9 @@ typedef struct proc{
 PROC proc[NPROC], *running, *freeList, *readyQueue;
 int procsize = sizeof(PROC);
 
-int init()  
+int init()
 {
-  int i, j; 
+  int i, j;
   PROC *p;
   kprintf("kernel_init()\n");
   for (i=0; i<NPROC; i++){
@@ -71,12 +71,24 @@ int init()
 void kexit()
 {
   printf("proc %d kexit\n", running->pid);
+
+  /*
+    P1 never dies;
+    give away children, if any, to P1
+    record exitValue in caller's PROC.exitCode;
+    mark the caller status as ZOMBIE;
+    wakeup P1 if has given any child to P1; // kwakeup(&proc[1]);
+    wakeup parent;                          // kwakeup(running->parent);
+    tswitch() to switch process;
+  */
+
+
   running->status = FREE;
   running->priority = 0;
   enqueue(&freeList, running);   // putproc(running);
   tswitch();
 }
-  
+
 PROC *kfork(int func, int priority)
 {
   int i;
@@ -89,12 +101,11 @@ PROC *kfork(int func, int priority)
     printf("dequeued proc#%d\n", p->pid);
   }
 
-  // part 6 here 
+  // part 6 here
   p->status = READY;
   p->priority = priority;
   p->ppid = running->pid;
   p->parent = running;
-
 
   // this area reserved for PROC binary tree work.
 
@@ -106,15 +117,15 @@ PROC *kfork(int func, int priority)
   }
 
   // else go to the child and insert it as the last child.
-  else { 
+  else {
     PROC* temp = p->parent->child;
     while (temp->sibling != NULL) {
       temp = temp->sibling;
-    } 
+    }
     // temp-> sibling is now null;
     temp->sibling = p;
   }
-  
+
   // set kstack to resume to body
   // stack = r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r14
   //         1  2  3  4  5  6  7  8  9  10 11  12  13  14
@@ -137,9 +148,9 @@ int scheduler()
       enqueue(&readyQueue, running);
   running = dequeue(&readyQueue);
   kprintf("next running = %d\n", running->pid);
-}  
+}
 
-// process code 
+// process code
 int body(int pid, int ppid, int func, int priority)
 {
   char c; char line[64];
@@ -153,19 +164,19 @@ int body(int pid, int ppid, int func, int priority)
     if (pid==3) color=CYAN;
     if (pid==4) color=YELLOW;
     if (pid==5) color=WHITE;
-    if (pid==6) color=GREEN;   
+    if (pid==6) color=GREEN;
     if (pid==7) color=WHITE;
     if (pid==8) color=CYAN;
-    
+
     printList("readyQueue", readyQueue);
 
-    kprintf("PROC || pid:%d, ppid:%d, func:%x, priority:%d", 
+    kprintf("PROC || pid:%d, ppid:%d, func:%x, priority:%d\n",
       pid, ppid, func, priority);
 
 
-    kprintf("proc %d running, parent = %d  ", running->pid, running->ppid);    
+    kprintf("proc %d running, parent = %d  ", running->pid, running->ppid);
     kprintf("input a char [s|f|q] : ");
-    c = kgetc(); 
+    c = kgetc();
 
     printf("%c\n", c);
 

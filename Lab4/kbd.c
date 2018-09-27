@@ -32,11 +32,28 @@ typedef volatile struct kbd{ // base = 0x1000 6000
   int head, tail, data, room;
 }KBD;
 
+u8 keymaps[256] = {0};
+
+void keydown(u8 keycode) {
+  keymaps[keycode] = 1;
+}
+
+void keyup(u8 keycode) {
+  keymaps[keycode] = 0;
+}
+
+int iskeydown(u8 keycode) {
+  if (keymaps[keycode] == 1) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+
 extern int color;
 volatile KBD kbd;
-
-int released = 0;
-int last_code = 0;
 
 int kbd_init()
 {
@@ -44,7 +61,7 @@ int kbd_init()
   kp->base = (char *)0x10006000;
   *(kp->base+KCNTL) = 0x14; // 0001 0100
   *(kp->base+KCLK)  = 8;
-  kp->data = 0;kp->room = 128; 
+  kp->data = 0;kp->room = 128;
   kp->head = kp->tail = 0;
 }
 
@@ -57,24 +74,17 @@ void kbd_handler()
   color=YELLOW;
   scode = *(kp->base+KDATA);
 
-  // key release
-  if (scode & 0x80) {
-    released = 1;
-  }
-
-  if (released == 0) {
-    last_code = scode;
+  if (scode == 0xF0) {
     return;
   }
 
-  c = unsh[last_code];
+  if (iskeydown(scode) == 1) {
+    keyup(scode);
+    return;
+  }
 
-
-  kprintf("kbd interrupt: c=");
-  if (c != '\r')
-    kprintf("%x %c\n", c, c); 
-  else
-    kprints("0x 0D <cr>\n\r");
+  keydown(scode);
+  c = unsh[scode];
 
   kp->buf[kp->head++] = c;
   kp->head %= 128;

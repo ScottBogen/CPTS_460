@@ -2,9 +2,8 @@
 
 // queue.c file
 extern PROC *freeList;
-// WRITE YOUR OWN functions:
 
-/* 
+/*
 typedef struct proc{
   struct proc *next;
   int    *ksp;
@@ -19,25 +18,24 @@ typedef struct proc{
 
   int    kstack[SSIZE];
 }PROC;
-*/ 
+*/
 
-// enter p into queue by priority 
+// enter p into queue by priority
 int enqueue(PROC** queue, PROC *p) {
 
   int SR = int_off();  // IRQ interrupts off, return CPSR
   PROC *qcur = queue;
 
-  // list is empty 
+  // list is empty
   if (qcur == NULL) {
-    qcur = p;
+    qcur = &p;
     qcur->parent = qcur;
   }
 
-
   // list is not empty
-  else { 
-    while (qcur->next != NULL) {    
-      if (p->priority < qcur->priority) {       // insert p here 
+  else {
+    while (qcur->next != NULL) {
+      if (p->priority < qcur->priority) {       // insert p here
         qcur->parent->next = p;
         p->parent = qcur->parent;
         p->next = qcur;
@@ -45,7 +43,7 @@ int enqueue(PROC** queue, PROC *p) {
         break;
       }
       else {
-        qcur = qcur->next; 
+        qcur = qcur->next;
       }
     }
     // we may be at the end of the list...
@@ -55,8 +53,8 @@ int enqueue(PROC** queue, PROC *p) {
     }
   }
 
-  int_on(SR);          //  restore CPSR 
-}				    
+  int_on(SR);          //  restore CPSR
+}
 
 // remove and return first PROC from queue
 PROC *dequeue(PROC **queue)
@@ -73,22 +71,21 @@ PROC *dequeue(PROC **queue)
     *queue = (*queue)->next;
     p->next = NULL;
   }
-  // remove the FISRT element from *queue; 
-  
-  int_on(SR);          //  restore CPSR 
-  
-  //return pointer to dequeued PROC;
+  // remove the FISRT element from *queue;
+  int_on(SR);          //  restore CPSR
+
+  // return pointer to dequeued PROC;
   return p;
 }
 
 
 int printList(char *name, PROC *p)
 {
-   kprintf("%s = ", name);
-   while(p){
-     kprintf("[%d%d]->", p->pid, p->priority);
-     p = p->next;
+  kprintf("%s = ", name);
+  while(p) {
+    kprintf("[%d%d]->", p->pid, p->priority);
+    p = p->next;
   }
-  kprintf("NULL\n"); 
-}
 
+  kprintf("NULL\n");
+}

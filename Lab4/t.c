@@ -43,7 +43,7 @@ void IRQ_handler()
 
     // read VIC status register to find out which interrupt
     vicstatus = VIC_STATUS; // VIC_STATUS=0x10140000=status reg
-    sicstatus = SIC_STATUS;  
+    sicstatus = SIC_STATUS;
     //kprintf("vicstatus=%x sicstatus=%x\n", vicstatus, sicstatus);
     if (vicstatus & 0x80000000){
        if (sicstatus & 0x08){
@@ -54,28 +54,23 @@ void IRQ_handler()
     if (vicstatus & (1<<4)){   // timer0,1=bit4
          timer_handler(0);
     }
-    if (vicstatus & (1<<31)){
-      if (sicstatus & (1<<3)){
-          kbd_handler();
-       }
-    }
 }
 
 int main()
-{ 
-   int i; 
-   char line[128]; 
+{
+   int i;
+   char line[128];
    u8 kbdstatus, key, scode;
 
    color = WHITE;
-   row = col = 0; 
-   fbuf_init();   
+   row = col = 0;
+   fbuf_init();
    /* enable timer0, 1, uart0, 1 SIC interrupts */
 
    VIC_INTENABLE |= (1<<4);  // timer0,1 at bit4
    VIC_INTENABLE |= (1<<5);  // timer2,3 at bit5
 
-   /* enable KBD IRQ */ 
+   /* enable KBD IRQ */
    VIC_INTENABLE |= (1<<31);  // SIC to VIC's IRQ31
    SIC_ENSET |= 1<<3;       // KBD int=3 on SIC
    SIC_PICENSET = 1<<3;     // KBD int=3 on SIC
@@ -83,7 +78,7 @@ int main()
    timer_init();
    kbd_init();
 
-   
+
    timer_start(0);
    kprintf("Welcome to WANIX in Arm\n");
    init();

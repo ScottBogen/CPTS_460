@@ -66,10 +66,10 @@ int fbuf_init()
   }
   ******** yet to figure out HOW TO use these palletes *************/
   fb = (int *)(1*1024*1024);  // at 1MB area; enough for 800x600 SVGA
-  font = fonts0;              // use fonts0 for char bit patterns 
+  font = fonts0;              // use fonts0 for char bit patterns
 
   // for (x = 0; x < (800 * 600); ++x) // for one BAND
-  /******** these will show 3 bands of BLUE, GREEN, RED ********* 
+  /******** these will show 3 bands of BLUE, GREEN, RED *********
   for (x = 0; x < (212*480); ++x)
   fb[x] = 0x00FF0000;  //00BBGGRR
   for (x = 212*480+1; x < (424*480); ++x)
@@ -139,9 +139,9 @@ int scroll()
   int i;
   for (i=0; i<640*480-640*16; i++){
     fb[i] = fb[i+ 640*16];
-  } 
+  }
 }
-  
+
 int kpchar(char c, int ro, int co)
 {
    int x, y;
