@@ -54,7 +54,8 @@ int kprintf(char *fmt, ...);
 int kpchar(char, int, int);
 int unkpchar(char, int, int);
 
-int blink = 1;
+int blink = 0;
+int on = 0;
 
 
 void timer_init()
@@ -87,20 +88,22 @@ void timer_handler(int n) {
     u32 ris, mis, value, load, bload, i;
     TIMER *t = &timer[n];
     t->tick++;
+    blink++;
 
     // cursor stuff
-    if (t->tick % 119 == 0) {
-      if (blink) {
-        blink--;
-        putcursor(cursor);
-      }
-      else {
-        blink++;
+    if (blink>=124) { 
+      blink = 0;
+      if (on) {
         clrcursor();
+        on--;
+      }
+      else { 
+        putcursor(cursor);
+        on++;
       }
     }
 
-    if (t->tick >= 240) {
+    if (t->tick >= 248) {
       t->tick = 0; t->ss++;
       if (t->ss >= 60) {
 	      t->ss = 0; t->mm++;

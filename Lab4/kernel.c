@@ -96,7 +96,7 @@ int kwakeup(int event) {
 
 int kwait(int *status) {
   if (!running->child) {
-    printf("ERROR: tried kwait on process with no children\n");
+    printf("\n\n!!!ERROR: tried kwait on process with no children!!!\n\n");
     return -1;
   }
 
@@ -113,7 +113,7 @@ int kwait(int *status) {
       PROC* p = running->child->sibling;
       while (p) {
         if (p->status == ZOMBIE) {
-          printf("child %d is ZOMBIE\n", p->pid);
+          printf("sibling %d is ZOMBIE\n", p->pid);
           int pid = p->pid;
           status = p->exitCode;
           p->status = FREE;
@@ -141,8 +141,11 @@ void kexit(int exitValue)
   }
 
   // give away children, if any, to P1
-  CPS(tmp->child, tmp->child->sibling);
+  //printf("child = %d, sibling = %d\n", tmp->child, tmp->child->sibling);
 
+  if (tmp->child) {
+    CPS(tmp->child, tmp->child->sibling);
+  }
   // record exitValue in caller's PROC.exitCode;
   tmp->exitCode = exitValue;
 
@@ -163,10 +166,12 @@ void kexit(int exitValue)
 
 void CPS(PROC* child, PROC* sibling) {
   if (child) {
+    printf("\n\n=== CPS called on child %d ===\n\n", child->pid);
     giveToOrphanage(child);
   }
 
   while (sibling) {
+    printf("\n\n=== CPS called on sibling %d ===\n\n", sibling->pid);
     giveToOrphanage(sibling);
     sibling = sibling->sibling;
   }
@@ -243,8 +248,10 @@ PROC *kfork(int func, int priority)
   return p;
 }
 
+
+
 int printChildren(PROC* p) {
-  printf("PID %d child list: ", p->pid);
+  printf("\n\n=== PID %d child list: ", p->pid);
 
   if (!p) {
     printf("p does not exist\n");
@@ -263,7 +270,7 @@ int printChildren(PROC* p) {
     tmp = tmp->sibling;
   }
 
-  printf("\n");
+  printf(" ===\n\n");
 }
 
 int scheduler()
@@ -295,13 +302,13 @@ int body(int pid, int ppid, int func, int priority)
 
     printList("readyQueue", readyQueue);
 
-    kprintf("PROC || pid:%d, ppid:%d, func:%x, priority:%d\n",
-      pid, ppid, func, priority);
+    //kprintf("PROC || pid:%d, ppid:%d, func:%x, priority:%d\n",
+    //  pid, ppid, func, priority);
 
     printList("freeList",freeList);
 
     kprintf("proc %d running, parent = %d  ", running->pid, running->ppid);
-    kprintf("input a char [s|f|q|w] : ");
+    kprintf("input a char [s|f|q|w|c] : ");
     c = kgetc();
 
     printf("%c\n", c);
@@ -311,6 +318,7 @@ int body(int pid, int ppid, int func, int priority)
       case 'f': kfork((int)body, 1);                    break;
       case 'q': do_exit();                              break;
       case 'w': do_wait();                              break;
+      case 'c': printChildren(running);                 break;
     }
   }
 }
@@ -325,6 +333,6 @@ int do_wait() {
   int status;
   int pid = kwait(&status);
   if (pid!=-1) {
-    printf("found ZOMBIE with pid=%d and status=%d", pid,status);
+    printf("found ZOMBIE with pid=%d and status=%d\n\n", pid,status);
   }
 }
