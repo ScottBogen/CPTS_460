@@ -34,24 +34,6 @@ typedef volatile struct kbd{ // base = 0x1000 6000
 
 u8 keymaps[256] = {0};
 
-void keydown(u8 keycode) {
-  keymaps[keycode] = 1;
-}
-
-void keyup(u8 keycode) {
-  keymaps[keycode] = 0;
-}
-
-int iskeydown(u8 keycode) {
-  if (keymaps[keycode] == 1) {
-    return 1;
-  }
-  else {
-    return 0;
-  }
-}
-
-
 extern int color;
 volatile KBD kbd;
 
@@ -78,12 +60,12 @@ void kbd_handler()
     return;
   }
 
-  if (iskeydown(scode) == 1) {
-    keyup(scode);
+  if (keymaps[scode]) {
+    keymaps[scode]--;
     return;
   }
 
-  keydown(scode);
+  keymaps[scode]++;
   c = unsh[scode];
 
   kp->buf[kp->head++] = c;
@@ -113,6 +95,7 @@ int kgets(char s[ ])
   char c;
   while((c=kgetc()) != '\r'){
     *s++ = c;
+    kputc(c);
   }
   *s = 0;
   return strlen(s);

@@ -68,25 +68,123 @@ int init()
   printList("freeList", freeList);
 }
 
-void kexit()
-{
-  printf("proc %d kexit\n", running->pid);
+int ksleep(int event) {
+  int SR = int_off();
 
-  /*
-    P1 never dies;
-    give away children, if any, to P1
-    record exitValue in caller's PROC.exitCode;
-    mark the caller status as ZOMBIE;
-    wakeup P1 if has given any child to P1; // kwakeup(&proc[1]);
-    wakeup parent;                          // kwakeup(running->parent);
-    tswitch() to switch process;
-  */
+  printf("\n\n=== process %d goes to sleep ===\n\n", running->pid);
 
-
-  running->status = FREE;
-  running->priority = 0;
-  enqueue(&freeList, running);   // putproc(running);
+  running->event = event;
+  running->status = SLEEP;
   tswitch();
+  int_on(SR);
+}
+
+int kwakeup(int event) {
+  int SR = int_off();
+  PROC* p;
+  printf("\n\n=== attempting kwakeup with event = %d ===\n\n", event);
+  for (int i = 0; i < 9; i++) {
+    p = &proc[i];
+    if (p->status == SLEEP) {
+      p->status = READY;
+      printf("waking up %d\n", p->pid);
+      enqueue(&readyQueue, p);
+    }
+  }
+  int_on(SR);
+}
+
+int kwait(int *status) {
+  if (!running->child) {
+    printf("ERROR: tried kwait on process with no children\n");
+    return -1;
+  }
+
+  while (1) {
+    if (running->child->status == ZOMBIE) {
+      printf("child %d is ZOMBIE\n", running->child->pid);
+      int pid = running->child->pid;
+      status = running->child->exitCode;
+      running->child->status = FREE;
+      enqueue(&freeList, running->child);
+      return pid;
+    }
+    else {
+      PROC* p = running->child->sibling;
+      while (p) {
+        if (p->status == ZOMBIE) {
+          printf("child %d is ZOMBIE\n", p->pid);
+          int pid = p->pid;
+          status = p->exitCode;
+          p->status = FREE;
+          enqueue(&freeList, p);
+          return pid;
+        }
+        p = p->sibling;
+      }
+    }
+
+    ksleep(running);
+  }
+}
+
+
+void kexit(int exitValue)
+{
+  PROC* tmp = running;
+  printf("proc %d kexit\n", tmp->pid);
+
+  //     P1 never dies
+  if (tmp->pid == 1) {
+    printf("Error: P1 cannot die\n");
+    return;
+  }
+
+  // give away children, if any, to P1
+  CPS(tmp->child, tmp->child->sibling);
+
+  // record exitValue in caller's PROC.exitCode;
+  tmp->exitCode = exitValue;
+
+  // mark the caller status as ZOMBIE;
+  tmp->status = ZOMBIE;
+
+  // wakeup P1 if has given any child to P1; // kwakeup(&proc[1]);
+  kwakeup(&proc[1]);  //.event
+
+  // wakeup parent; // kwakeup(running->parent);
+  kwakeup(running->parent);
+
+  //old code: running->status = FREE ;    not needed since we mamrked as zombie
+  running->priority = 0;
+  //old code: enqueue(&freeList, running);   // putproc(running); old kexit code,
+  tswitch();
+}
+
+void CPS(PROC* child, PROC* sibling) {
+  if (child) {
+    giveToOrphanage(child);
+  }
+
+  while (sibling) {
+    giveToOrphanage(sibling);
+    sibling = sibling->sibling;
+  }
+}
+
+void giveToOrphanage(PROC* orphan) {
+  PROC* p = &proc[1];   // get p1
+  if (!p->child) {
+    p->child = orphan;
+    orphan->parent = p;
+  }
+  else {
+    orphan->parent = p;
+    while (p->child->sibling) {
+      p = p->sibling;
+    }
+    p->sibling = orphan;
+  }
 }
 
 PROC *kfork(int func, int priority)
@@ -101,7 +199,6 @@ PROC *kfork(int func, int priority)
     printf("dequeued proc#%d\n", p->pid);
   }
 
-  // part 6 here
   p->status = READY;
   p->priority = priority;
   p->ppid = running->pid;
@@ -136,9 +233,37 @@ PROC *kfork(int func, int priority)
   p->ksp = &(p->kstack[SSIZE-14]);
 
   enqueue(&readyQueue, p);
+
+  // print child list
+  printChildren(p);
+
+
+
   printf("%d kforked a child %d\n", running->pid, p->pid);
-  printList("readyQueue", readyQueue);
   return p;
+}
+
+int printChildren(PROC* p) {
+  printf("PID %d child list: ", p->pid);
+
+  if (!p) {
+    printf("p does not exist\n");
+    return 0;
+  }
+  if (p->child) {
+    printf("[%d]", p->child->pid);
+  }
+  else {
+    printf("p has no children\n");
+    return -1;
+  }
+  PROC* tmp = p->child->sibling;
+  while (tmp) {
+    printf("->[%d]",tmp->pid);
+    tmp = tmp->sibling;
+  }
+
+  printf("\n");
 }
 
 int scheduler()
@@ -154,7 +279,7 @@ int scheduler()
 int body(int pid, int ppid, int func, int priority)
 {
   char c; char line[64];
-  int color;
+  //int color;
   kprintf("proc %d resume to body()\n", running->pid);
   while(1){
     pid = running->pid;
@@ -173,21 +298,33 @@ int body(int pid, int ppid, int func, int priority)
     kprintf("PROC || pid:%d, ppid:%d, func:%x, priority:%d\n",
       pid, ppid, func, priority);
 
-    printf("freelist:::\n");
     printList("freeList",freeList);
 
     kprintf("proc %d running, parent = %d  ", running->pid, running->ppid);
-    kprintf("input a char [s|f|q] : ");
+    kprintf("input a char [s|f|q|w] : ");
     c = kgetc();
 
     printf("%c\n", c);
 
-
-
     switch(c){
-      case 's': tswitch();           break;
-      case 'f': kfork((int)body, 1); break;
-      case 'q': kexit();             break;
+      case 's': tswitch();   printChildren(running);    break;
+      case 'f': kfork((int)body, 1);                    break;
+      case 'q': do_exit();                              break;
+      case 'w': do_wait();                              break;
     }
+  }
+}
+
+int do_exit() {
+  printf("enter exit value ::: ");
+  int value = geti();
+  kexit(value);
+}
+
+int do_wait() {
+  int status;
+  int pid = kwait(&status);
+  if (pid!=-1) {
+    printf("found ZOMBIE with pid=%d and status=%d", pid,status);
   }
 }

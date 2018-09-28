@@ -70,20 +70,19 @@ int enqueue(PROC** queue, PROC *p) {
 int enqueue(PROC **queue, PROC *p)
 {
   int SR = int_off();
-  //grap front of queue;
-  PROC *qp = *queue;
 
-  //empty queue
-  if (!qp ) {
-    p->next = qp;
+  PROC *tmp = *queue;
+
+  if (!tmp) {
+    p->next = tmp;
     *queue = p;
     return 1;
   }
   //else we should be at front
-  if(p->priority > qp->priority)
+  if(p->priority > tmp->priority)
   {
     //set to top
-    p->next = qp;
+    p->next = tmp;
     *queue = p;
     int_on(SR);
     return 1;
@@ -91,14 +90,13 @@ int enqueue(PROC **queue, PROC *p)
 
   //else at least one node to find place
   //check p->priority against the NEXT items->priority to make insert easier
-  while(qp->next && p->priority <= (qp->next)->priority)
+  while(tmp->next && p->priority <= (tmp->next)->priority)
   {
-    //move the thing to the next thing ;)
-    qp = qp->next;
+    tmp = tmp->next;
   }
-  //insert p into list after qp
-  p->next = qp->next;
-  qp->next = p;
+  //insert p into list after tmp
+  p->next = tmp->next;
+  tmp->next = p;
   int_on(SR);
 
   return 1;
