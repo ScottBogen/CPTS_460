@@ -82,7 +82,7 @@ int ksleep(int event) {
 int kwakeup(int event) {
   int SR = int_off();
   PROC* p;
-  printf("\n\n=== attempting kwakeup with event = %d ===\n\n", event);
+  //printf("\n\n=== attempting kwakeup with event = %d ===\n\n", event);
   for (int i = 0; i < 9; i++) {
     p = &proc[i];
     if (p->status == SLEEP) {
@@ -128,7 +128,7 @@ int kwait(int *status) {
   }
 }
 
-
+// kill processes, send data and orphans to p1,
 void kexit(int exitValue)
 {
   PROC* tmp = running;
@@ -152,10 +152,14 @@ void kexit(int exitValue)
   // mark the caller status as ZOMBIE;
   tmp->status = ZOMBIE;
 
+
+  tmp = &proc[1];
   // wakeup P1 if has given any child to P1; // kwakeup(&proc[1]);
+  printf("\n=== Attempting kwakeup on %d ===\n", tmp->pid);
   kwakeup(&proc[1]);  //.event
 
   // wakeup parent; // kwakeup(running->parent);
+  printf("\n=== Attempting kwakeup on %d ===\n", running->parent->pid);
   kwakeup(running->parent);
 
   //old code: running->status = FREE ;    not needed since we mamrked as zombie
@@ -166,12 +170,12 @@ void kexit(int exitValue)
 
 void CPS(PROC* child, PROC* sibling) {
   if (child) {
-    printf("\n\n=== CPS called on child %d ===\n\n", child->pid);
+    printf("\n=== CPS called on child %d ===\n", child->pid);
     giveToOrphanage(child);
   }
 
   while (sibling) {
-    printf("\n\n=== CPS called on sibling %d ===\n\n", sibling->pid);
+    printf("\n=== CPS called on sibling %d ===\n", sibling->pid);
     giveToOrphanage(sibling);
     sibling = sibling->sibling;
   }
@@ -240,7 +244,7 @@ PROC *kfork(int func, int priority)
   enqueue(&readyQueue, p);
 
   // print child list
-  printChildren(p);
+  printChildren(running);
 
 
 
