@@ -21,85 +21,61 @@ typedef struct proc{
 */
 
 // enter p into queue by priority
-/*
+
 int enqueue(PROC** queue, PROC *p) {
 
   int SR = int_off();  // IRQ interrupts off, return CPSR
-  PROC *qcur = queue;
+  PROC *qcur = *queue;
 
   printf("attempting nqueue with proc p and pid %d\n", p->pid);
-  printList("queue", queue);
 
   // list is empty
   if (qcur == NULL) {
-    printf("Putting p in empty queue\n");
-    qcur = &p;
-    qcur->parent = qcur;
+      p->next = qcur;
+      *queue = p;
+  }
+
+  else if (p->priority > qcur->priority) {    // insert p near front
+    // p = 2
+    // queue: 1 NULL
+    //        q
+    p->next = qcur;
+    *queue = p;
   }
 
   // list is not empty
   else {
-    while (qcur->next != NULL) {
-      if (p->priority < qcur->priority) {       // insert p here
-        printf("\ninserting %d after %d\n", p->pid, qcur->pid);
-        printf("p priority = %d, qcur priority = %d\n", p->priority, qcur->priority);
-        qcur->parent->next = &p;
-        p->parent = qcur->parent;
-        p->next = qcur;
-        qcur->parent = &p;
-        break;
+    while (qcur->next) {
+      if (p->priority > qcur->next->priority) {       // insert p here
+
+        // p = 4
+        //
+        // queue: 1 2 3 _ 5 NULL
+        //            q
+        //
+
+        p->next = qcur->next; // 4 -> 5
+        qcur->next = p;       // 3 -> 4
+        int_on(SR);
+        return 1;
       }
+
       else {
-        printf("skipping pid=%d with priority %d", qcur->pid, qcur->priority);
         qcur = qcur->next;
       }
     }
 
     // we may be at the end of the list...
     if (qcur->next == NULL) {
+      // p = 5
+      // queue: 1 2 3 4 NULL
+      //              q
+
       qcur->next = p;
-      p->parent = qcur;
+      p->next = NULL;
     }
-
   }
-
   int_on(SR);          //  restore CPSR
-}
-*/
-
-int enqueue(PROC **queue, PROC *p)
-{
-  int SR = int_off();
-
-  PROC *tmp = *queue;
-
-  if (!tmp) {
-    p->next = tmp;
-    *queue = p;
-    return 1;
-  }
-  //else we should be at front
-  if(p->priority > tmp->priority)
-  {
-    //set to top
-    p->next = tmp;
-    *queue = p;
-    int_on(SR);
-    return 1;
-  }
-
-  //else at least one node to find place
-  //check p->priority against the NEXT items->priority to make insert easier
-  while(tmp->next && p->priority <= (tmp->next)->priority)
-  {
-    tmp = tmp->next;
-  }
-  //insert p into list after tmp
-  p->next = tmp->next;
-  tmp->next = p;
-  int_on(SR);
-
-  return 1;
 }
 
 // remove and return first PROC from queue

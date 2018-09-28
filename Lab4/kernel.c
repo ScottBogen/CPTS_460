@@ -132,7 +132,7 @@ int kwait(int *status) {
 void kexit(int exitValue)
 {
   PROC* tmp = running;
-  printf("proc %d kexit\n", tmp->pid);
+  printf("proc %d kexit w/ value %d\n", tmp->pid, exitValue);
 
   //     P1 never dies
   if (tmp->pid == 1) {
