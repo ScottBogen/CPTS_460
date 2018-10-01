@@ -29,26 +29,6 @@ typedef volatile struct kbd{
 
 volatile KBD kbd;
 
-u8 keysmap[256] = {0};
-
-void keydown(u8 keycode) {
-  keysmap[keycode] = 1;
-}
-
-void keyup(u8 keycode) {
-  keysmap[keycode] = 0;
-}
-
-int iskeydown(u8 keycode) {
-  if (keysmap[keycode] == 1) {
-    return 1;
-  }
-  else {
-    return 0;
-  }
-}
-
-
 int kbd_init()
 {
   KBD *kp = &kbd;
@@ -63,24 +43,16 @@ void kbd_handler()
 {
   u8 scode, c;
   KBD *kp = &kbd;
-  color = CYAN;
+  color = YELLOW;
   scode = *(kp->base + KDATA);
-
-  if (scode == 0xF0) {
-    //return;
-  }
-
-  if (iskeydown(scode) == 1) {
-    keyup(scode);
+  if (scode & 0x80)
     return;
-  }
-
-  keydown(scode);
-
   c = unsh[scode];
-
-  if (c >= 'a' && c <= 'z')
-     printf("kbd interrupt: c=%s %c\n", c, c);
+  //if (c >= 'a' && c <= 'z'){
+     printf("kbd interrupt: c=%x %c\t\tscode = %x\n", c, c, scode);
+     //printf("\t\t");
+     find_cpsr();
+  //}
   kp->buf[kp->head++] = c;
   kp->head %= 128;
   kp->data++; kp->room--;

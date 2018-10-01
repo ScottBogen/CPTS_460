@@ -85,7 +85,7 @@ int kwakeup(int event) {
   //printf("\n\n=== attempting kwakeup with event = %d ===\n\n", event);
   for (int i = 0; i < 9; i++) {
     p = &proc[i];
-    if (p->status == SLEEP) {
+    if (p->status == SLEEP && p->event == event) {
       p->status = READY;
       printf("waking up %d\n", p->pid);
       enqueue(&readyQueue, p);
@@ -104,7 +104,7 @@ int kwait(int *status) {
     if (running->child->status == ZOMBIE) {
       printf("child %d is ZOMBIE\n", running->child->pid);
       int pid = running->child->pid;
-      status = running->child->exitCode;
+      *status = running->child->exitCode;
       running->child->status = FREE;
       enqueue(&freeList, running->child);
       return pid;
@@ -115,7 +115,7 @@ int kwait(int *status) {
         if (p->status == ZOMBIE) {
           printf("sibling %d is ZOMBIE\n", p->pid);
           int pid = p->pid;
-          status = p->exitCode;
+          *status = p->exitCode;
           p->status = FREE;
           enqueue(&freeList, p);
           return pid;

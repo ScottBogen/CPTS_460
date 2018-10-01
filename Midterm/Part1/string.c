@@ -1,3 +1,4 @@
+
 int strlen(char *s);
 int strcmp(char *s1, char *s2);
 int strcpy(char *dest, char *src);
@@ -5,34 +6,13 @@ int strncpy(char *dest, char *src, int n);
 int strncmp(char *s1, char *s2, int n);
 int memcpy(char *dest, char *src, int n);
 int memset(char *dest, char c, int n);
-int atoi(char *str);
-int geti();
 
-// geti() returns an integer from KBD
-// HINT: gets(char *s); then return atoi(s);
-
-int geti() {
-  char str[32];
-  kgets(str);
-  printf("\n");
-  return atoi(str);
-}
-
-int atoi(char *str)
-{
-    int sum = 0, i = 0;
-
-    for (int i = 0; str[i] != '\0'; i++) {
-        sum = sum*10 + str[i] - '0';
-    }
-
-    return sum;
-}
 
 int strlen(char *s) {
   int sum = 0;
-  while(*s++) {
+  while(*s) {
     sum++;
+    s++;
   }
   return sum;
 }

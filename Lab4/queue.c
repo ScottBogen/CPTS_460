@@ -35,9 +35,9 @@ int enqueue(PROC** queue, PROC *p) {
       *queue = p;
   }
 
-  else if (p->priority > qcur->priority) {    // insert p near front
-    // p = 2
-    // queue: 1 NULL
+  else if (p->priority > qcur->priority) {    // insert p at front
+    // p = 1
+    // queue: 2 NULL
     //        q
     p->next = qcur;
     *queue = p;
