@@ -51,7 +51,7 @@ void IRQ_handler()
 
     // read VIC SIV status registers to find out which interrupt
     vicstatus = VIC_STATUS;
-    sicstatus = SIC_STATUS;  
+    sicstatus = SIC_STATUS;
     // kprintf("vicstatus=%x sicstatus=%x\n", vicstatus, sicstatus);
     // VIC status BITs: timer0,1=4, uart0=13, uart1=14, SIC=31: KBD at 3
     /**************
@@ -89,43 +89,78 @@ void IRQ_handler()
     *****************/
     if (vicstatus & (1<<4)){   // timer0,1=bit4
          timer_handler(0);
-    }    
+    }
     if (vicstatus & (1<<31)){
       if (sicstatus & (1<<3)){
           kbd_handler();
        }
     }
+
+    /*
+    unsigned int mode = find_cpsr();
+    kprintf("----- MODE: %x\t\t", mode);
+    if      (mode == 0x12) { kprintf("(IRQ)");        }
+    else if (mode == 0x13) { kprintf("(SVC)");        }
+    else                   { kprintf("(OTHER MODE)"); }
+    kprintf(" -----\n");
+    */
 }
+
+/*
+get REG in assembly:
+
+
+.global getREG
+getREG: mov r0, REG
+    mov pc, lr
+*/
+
+int find_cpsr() {
+  unsigned int cbuf = getcpsr();    // long guaranteed to be 4 bytes
+  return (cbuf & 0x1F);       // first 5 bits using bit masking, 1F in binary is 11111
+}
+
+int find_spsr() {
+  unsigned int sbuf = getspsr();
+  return (sbuf & 0x1F);
+}
+
+// IRQ mode = 10010 (0x12)
+// SVC mode = 10011 (0x13)
+
 
 int main()
 {
-   int i; 
+   int i;
    char line[128];
 
    color = YELLOW;
-   row = col = 0; 
+   row = col = 0;
    fbuf_init();
 
    /* enable timer0,1, uart0,1 SIC interrupts */
-   VIC_INTENABLE |= (1<<4);  // timer0,1 at bit4 
-   VIC_INTENABLE |= (1<<5);  // timer2,3 at bit5 
+   VIC_INTENABLE |= (1<<4);  // timer0,1 at bit4
+   VIC_INTENABLE |= (1<<5);  // timer2,3 at bit5
 
    VIC_INTENABLE |= (1<<31); // SIC to VIC's IRQ31
 
    /* enable KBD IRQ */
    SIC_ENSET = 1<<3;     // KBD int=3 on SIC
    SIC_PICENSET = 1<<3;  // KBD int=3 on SIC
- 
+
    kprintf("C3.2 start: test timer KBD drivers by interrupts\n");
    timer_init();
    kbd_init();
+
    /***************
    for (i=0; i<4; i++){
       tp[i] = &timer[i];
       timer_start(i);
    }
    ************/
+
    timer_start(0);
+
    while(1){
       color = CYAN;
       kprintf("Enter a line from KBD\n");

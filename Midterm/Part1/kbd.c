@@ -59,6 +59,47 @@ int kbd_init()
   kp->data = 0; kp->room = 128;
 }
 
+/*
+    1. KBD structure: no need for change
+    2. kgetc(): rewrite kgetc to let process sleep for data if there
+    are no keys in the input buffer. in order to prevent race
+    conditions between the process and the interrupt handler, the
+    process disables interrupts first. Then it checks the data variable
+    and modifies the input buffer with interrupts disabled, but it must
+    enable interrupts before going to sleep. The modified kgetc()
+    function is:
+
+    int kgetc() {
+      char c;
+      KBD *kp = &kbd;
+      while(1) {
+          lock();     // disable IRQ interrupts
+          if (kp->data == 0) {  // check data with IRQ disabled
+              unlock();         // enable IRQ interrupts
+              ksleep(&kp->data);  // sleep for data
+          }
+      }
+      c = kp->buf[kp->tail++];
+      kp->tail %= BUFSIZE;
+      kp->data--;
+      unlock();   // enable IRQ interrupts
+      return c;
+    }
+
+
+    3. Rewrite kbd handler to wake up sleeping procs, if any, that are
+    waiting for data. Since process cannot interfere with interrupt
+    handler, there is no need to protect the data variables inside the
+    interrupt handler.
+
+    kbd_handler() {
+        struct KBD *kp = &kbd;
+        scode = *(kp->base+KDATA)
+    }
+
+*/
+
+
 void kbd_handler()
 {
   u8 scode, c;
@@ -92,7 +133,7 @@ int kgetc()
   KBD *kp = &kbd;
 
   unlock();
-  while(kp->data == 0);
+  while(kp->data == 0);   // busy-wait for data
 
   lock();
   c = kp->buf[kp->tail++];

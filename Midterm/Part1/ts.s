@@ -20,7 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 .global reset
 .global vectors_start, vectors_end
 .global lock, unlock
-reset:	
+.global getcpsr, getspsr
+
+reset:
 vectors_start:
 
   LDR PC, reset_handler_addr
@@ -69,7 +71,7 @@ irq_handler:
   sub	lr, lr, #4
   stmfd	sp!, {r0-r10, fp, ip, lr}
 
-  bl	IRQ_handler  
+  bl	IRQ_handler
 
   ldmfd	sp!, {r0-r10, fp, ip, pc}^
 lock:
@@ -82,5 +84,13 @@ unlock:
 	bic r0, r0, #0x80
 	msr cpsr, r0
 	mov pc, lr
-	
+
+getcpsr:
+    mrs r0, cpsr
+    mov pc, lr
+
+getspsr:
+    mrs r0, spsr
+    mov pc, lr
+
 .end
