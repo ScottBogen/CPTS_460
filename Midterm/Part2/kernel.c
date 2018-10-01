@@ -323,6 +323,8 @@ int body(int pid, int ppid, int func, int priority)
       case 'q': do_exit();                              break;
       case 'w': do_wait();                              break;
       case 'c': printChildren(running);                 break;
+      case 't': do_timer();                             break;
+      case 'p': print_timers();
     }
   }
 }
@@ -333,6 +335,12 @@ int do_exit() {
   kexit(value);
 }
 
+int do_timer() {
+  printf("enter sleep time ::: ");
+  int value = geti();
+  tInsert(value);
+}
+ 
 int do_wait() {
   int status;
   int pid = kwait(&status);

@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "exceptions.c"
 #include "kernel.c"
 #include "timer.c"
+#include "timerQueue.c"
 
 
 TIMER *tp[4];

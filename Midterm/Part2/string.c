@@ -5,20 +5,20 @@ int strncpy(char *dest, char *src, int n);
 int strncmp(char *s1, char *s2, int n);
 int memcpy(char *dest, char *src, int n);
 int memset(char *dest, char c, int n);
-int atoi(char *str);
+int my_atoi(char *str);
 int geti();
 
 // geti() returns an integer from KBD
-// HINT: gets(char *s); then return atoi(s);
+// HINT: gets(char *s); then return my_atoi(s);
 
 int geti() {
   char str[32];
   kgets(str);
   printf("\n");
-  return atoi(str);
+  return my_atoi(str);
 }
 
-int atoi(char *str)
+int my_atoi(char *str)
 {
     int sum = 0, i = 0;
 

@@ -48,15 +48,17 @@ typedef volatile struct timer{
   int tick, hh, mm, ss; // per timer data area
   char clock[16];
 }TIMER;
+
 volatile TIMER timer[4];  // 4 timers; 2 timers per unit; at 0x00 and 0x20
 
 int kprintf(char *fmt, ...);
 int kpchar(char, int, int);
 int unkpchar(char, int, int);
 
+
+// for cursor
 int blink = 0;
 int on = 0;
-
 
 void timer_init()
 {
@@ -84,6 +86,9 @@ void timer_init()
   }
 }
 
+
+
+
 void timer_handler(int n) {
     u32 ris, mis, value, load, bload, i;
     TIMER *t = &timer[n];
@@ -105,6 +110,9 @@ void timer_handler(int n) {
 
     if (t->tick >= 248) {
       t->tick = 0; t->ss++;
+      // make timer service decrement 
+      service_handler();
+
       if (t->ss >= 60) {
 	      t->ss = 0; t->mm++;
 	      if (t->mm >= 60){
