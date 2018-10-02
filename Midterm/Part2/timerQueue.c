@@ -1,18 +1,17 @@
 #include "timerQueue.h"
-#include <stdlib.h>
 
 #define MAXTIMERS 8
 #define NULL 0
 
 
 typedef volatile struct tNode {
-  struct tNode* next;     // TQE -> TQE -> TQE
   int seconds_left;     // seconds until expiration
   int pid;              // pid for calling PROC 
+  int status;
 } tNode;
 
 
-volatile tNode *tQueue;
+tNode tQueue[MAXTIMERS];
 
 /* 
     Use case:
@@ -37,93 +36,99 @@ volatile tNode *tQueue;
         4 -> 6 -> 2 -> 20 -> 13 -> 7
 */ 
 
+int tInit() {
+    for (int i = 0; i < MAXTIMERS; i++) {
+        tQueue[i].pid = 0;
+        tQueue[i].seconds_left = 0;
+        tQueue[i].status = READY;
+    }
+
+    printf("initialized timers\n");
+}
+
 int tInsert(int value) {
-    tNode *tp;
-    tp = tQueue;
+    //tNode temp;
+    //temp.pid = running->pid;
 
-    ksleep(running);
-
+    printf("entered insert with value=\t%d\n", value);
+    int pid = running->pid;
     int sum = 0;
 
-    // TODO: malloc a tNode
-    tNode* new_node = (tNode*) malloc(sizeof(struct tNode));
-    new_node->next = NULL;
-    new_node->pid = running->pid;
-    new_node->seconds_left = value;
-    
-    // list EMPTY
-    if (!tp) {
-        // insert at front
-        tQueue = new_node;
-    }
-    //                                 new  tp 
-    // list: 5, insert: 3       :::     3 -> 5      =     3->2
-    else if (value < tp->seconds_left) {
-        new_node->next = tp;
-        sum += value;
-        tQueue = new_node;
-        while(tp) {
-            tp->seconds_left -= sum;
-            sum += tp->seconds_left;
-            tp = tp->next;
+    // insert
+
+
+    // 5 -> 3 -> 3 
+    //insert(9)
+
+
+    // 5 < 9 --> skip
+    // 8 < 9 --> skip
+    // 12 !< 9 --> go into 
+    // sum + seconds_left > value
+
+    for (int i = 0; i < MAXTIMERS; i++) {
+
+
+
+        
+        if (tQueue[i].status == READY && (tQueue[i].seconds_left + sum) < value) {
+            tQueue[i].status = SLEEP;
+            tQueue[i].pid = pid;
+            tQueue[i].seconds_left = value - sum;
+            printf("inserted pid=%d at i=%d\n", pid, i);
+            break;
+        } 
+        else if (tQueue[i].status == SLEEP) {
+
         }
-
-    }
-    else {
-        sum += tp->seconds_left;
-        while(tp->next) {
-            if (value > sum + tp->next->seconds_left) {
-                break;
-            }
-            else {
-                sum += tp->next->seconds_left;
-                tp = tp->next;
-            }
-        }
-       // out of loop means we can insert after  
-        new_node->next = tp->next;
-        tp->next = new_node;
-        tp->seconds_left = value - sum;
-        sum += tp->seconds_left;
-
-        // now focus on adjusting the nodes after this
-        tp = new_node;
-        tp = tp->next;
-
-        while (tp) {
-            tp->seconds_left -= sum;
-            sum += tp->seconds_left;
-            tp = tp->next;
+        else {
+            printf("skip..\n");
+            sum += tQueue[i].seconds_left;
         }
     }
+    ksleep(running);
 }
 
 void service_handler() {
-    tNode* tmp;
-    tmp = tQueue;
-    tmp->seconds_left--;
 
-    if (tmp->seconds_left <= 0) {
-        int pid = tmp->pid;
-        tQueue = tQueue->next;
-        free(tmp);
+    if (tQueue[0].status == SLEEP) {
+        tQueue[0].seconds_left--;
+    }
+
+    //    0 1 2 3 4 5 6 7 8 
+    //    * 
+    //    5 4 3 2 FREE FREE FREE  
+    //    4 3 2 FREE FREE FREE FREE     
+
+    if (tQueue[0].status == SLEEP && tQueue[0].seconds_left <= 0) {
+        // move everything back 
+        int pid = tQueue[0].pid;
+        int i;
+        for (i = 1; i < MAXTIMERS; i++) {
+            if (tQueue[i].status == SLEEP) {
+                tQueue[i-1] = tQueue[i];
+            }
+            tQueue[i-1].pid = 0;
+            tQueue[i-1].status = READY;
+            tQueue[i-1].seconds_left = 0;
+        }
+
         kwakeup(&proc[pid]);
     } 
 }
 
 void print_timers() {
-    tNode* tmp;
-    tmp = tQueue;
-
-    if (!tmp) {
+    /*
+    if (tQueue[0].status==READY) {
         printf("Nothing in timer queue\n");
         return;
     }
+    */
 
-    printf("Remaining\tPID\n---------------\n");
+    printf("Remaining\tPID\t\tStatus\n---------------\n");
+    int i = 0;
 
-    while (tmp) {
-        printf("%d\t\t%d\t\t%d", tmp->seconds_left, tmp->pid);
-        tmp = tmp->next;
+    for (i = 0; i < MAXTIMERS; i++) {
+        printf("%d\t\t%d\t\t%d\n", tQueue[i].seconds_left, tQueue[i].pid, tQueue[i].status);
     }
 }

@@ -312,7 +312,7 @@ int body(int pid, int ppid, int func, int priority)
     printList("freeList",freeList);
 
     kprintf("proc %d running, parent = %d  ", running->pid, running->ppid);
-    kprintf("input a char [s|f|q|w|c] : ");
+    kprintf("input a char [s|f|q|w|c|t|p] : ");
     c = kgetc();
 
     printf("%c\n", c);

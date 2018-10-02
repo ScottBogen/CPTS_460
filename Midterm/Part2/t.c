@@ -83,6 +83,7 @@ int main()
    timer_start(0);
    kprintf("Welcome to WANIX in Arm\n");
    init();
+   tInit();
 
 
    printf("attempting kfork....\n\n\n");
