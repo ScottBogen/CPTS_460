@@ -68,7 +68,7 @@ typedef unsigned int   u32;
 #define  BLOCK  3
 #define  ZOMBIE 4
 #define  printf  kprintf
-
+ 
 typedef struct proc{
   struct proc *next;
   int    *ksp;
@@ -85,12 +85,6 @@ typedef struct proc{
 
   int    kstack[SSIZE];
 }PROC;
-
-typedef struct semaphore {
-  int spinlock;
-  int value;
-  PROC* queue;
-}SEMAPHORE;
 
 int kprintf(char *fmt,...);
 PROC *dequeue(PROC **queue);

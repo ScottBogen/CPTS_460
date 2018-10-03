@@ -1,0 +1,33 @@
+char buf[8];
+
+int producer() {
+  P(sp);
+  while(1) {
+    char c = kgetc();
+    P(empty);
+    P(mutex);
+    buf[head++] = str;
+    head %= 8;
+    V(mutex);
+
+    if (empty->value == 0) {
+      V(full);
+    }
+  }
+  V(sp);
+}
+
+int consumer() {
+  P(sp);
+  while(1) {
+    P(full);
+    P(mutex);
+    char c = buf[tail++];
+    tail %= 8;
+    V(mutex);
+    if (full->value == 10) {
+      V(empty);
+    }
+  }
+  V(sp);
+}
