@@ -42,14 +42,22 @@ typedef struct proc{
 #define N 8   /* N buffer cells */
 #include "kernel.h"
 
+
+typedef struct semaphore {
+  char* name;
+  int owner;
+  int value;
+  PROC* queue;
+}SEMAPHORE;
+
 PROC proc[NPROC], *running, *freeList, *readyQueue;
 int procsize = sizeof(PROC);
-struct semaphore* sp;
 
-struct semaphore* empty;
-struct semaphore* full;
-struct semaphore* pmutex;
-struct semaphore* cmutex;
+struct semaphore* sp;     // changing functionality of sp: like sp = &empty;
+struct semaphore empty;
+struct semaphore full;
+struct semaphore pmutex;
+struct semaphore cmutex;
 
 int head, tail;
 char buf[N];
@@ -71,17 +79,14 @@ int init()
 
   printf("init semaphores\n");
   sp->value = 1;
-  sp->name = "sp";
-  empty->value = 8;
-  cmutex->name = "cmutex";
-  empty->name = "empty";
-  full->value = 0;
-  full->name = "full";
-  pmutex->value = 1;
-  pmutex->owner = 0;
-  pmutex->name = "pmutex";
-  cmutex->value = 1;
-  cmutex->owner = 0;
+
+  empty.value = 8;
+  full.value = 0;
+  pmutex.value = 1;
+  pmutex.owner = 0;
+  cmutex.value = 1;
+  cmutex.owner = 0;
+
   //sp->owner = empty->owner = full->owner = 0;
   head = 0;
   tail = 0;
@@ -104,10 +109,10 @@ int P(struct semaphore *s) {
   s->value--;
   //printf("P value = %d, owner = %d\n", s->value, s->owner);
   if (s->value < 0) {
-    printf("blocked semaphore, s = %d, name = %s\n", s->value, s->name);
+    //printf("blocked semaphore, s = %d, name = %s\n", s->value, s->name);
     block(s);
   } else {
-    printf("semaphore not blocked, s = %d, name = %s\n", s->value, s->name);
+    //printf("semaphore not blocked, s = %d, name = %s\n", s->value, s->name);
   }
   int_on(SR);
 }
@@ -124,10 +129,10 @@ int V(struct semaphore *s) {
   s->value++;
   //printf("V value = %d, owner = %d\n", s->value, s->owner);
   if (s->value <= 0) {
-    printf("signaled semaphore, s = %d, name = %s\n", s->value, s->name);
+    //printf("signaled semaphore, s = %d, name = %s\n", s->value, s->name);
     signal(s);
   } else {
-    printf("semaphore not signaled, s = %d, name = %s\n", s->value, s->name);
+    //printf("semaphore not signaled, s = %d, name = %s\n", s->value, s->name);
   }
   int_on(SR);
 }
@@ -139,76 +144,38 @@ int signal(struct semaphore *s) {
 }
 
 int producer() {
-  //pmutex->owner = running->pid;
-  //P(sp);
   while(1) {
-    printf("Producer calling P(empty)\t\t\t\t\t\t");  // good
-    P(empty); // not blocked
-    printf("Producer calling P(pmutex)\t\t\t\t\t\t"); // good
-    P(pmutex); // blocked (meaning previously >= 0)
+    P(&empty);    // ex: 8 --> 7
+    P(&pmutex);
+    //////////////////////////////////////////
     printf("PRODUCER {{{ input char: ");
     char c = kgetc();
     kputc(c);
     printf("\n");
     buf[head++] = c;
     head %= N;
-    printf("empty = %d\n", empty->value);
-    printf("Producer calling V(pmutex)\t\t\t\t\t\t");
-    V(pmutex); // signalled
-    printf("Producer calling V(full)\t\t\t\t\t\t");
-    V(full);   // not signalled
+    //////////////////////////////////////////
+    V(&pmutex);
+    V(&full);
   }
 }
 
 int consumer() {
   while(1) {
-    printf("Consumer calling P(full)\t\t\t\t\t\t");
-    P(full);
-    printf("Consumer calling P(cmutex)\t\t\t\t\t\t");
-    P(cmutex);
+    P(&full);   // ex: 0 --> -1
+    P(&cmutex);
+    //////////////////////////////////////////
     char c = buf[tail];
-    printf("CONSUMER }}} received char %d\n", c);
+    printf("CONSUMER }}} received char %c\n", c);
     if (c != 0) {
       tail++;
       tail %= N;
-      kputc(c);
-      empty->value++;
-      full->value--;
     }
-    printf("Consumer called V(cmutex)\t\t\t\t\t\t");
-    V(cmutex);
-    printf("Consumer called V(empty)\t\t\t\t\t\t");
-    V(empty);
+    //////////////////////////////////////////
+    V(&cmutex);
+    V(&empty);
   }
 }
-
-
-/*
-int ksleep(int event) {
-  int SR = int_off();
-
-  printf("\n\n=== process %d goes to sleep ===\n\n", running->pid);
-
-  running->event = event;
-  running->status = SLEEP;
-  tswitch();
-  int_on(SR);
-}
-
-int kwakeup(int event) {
-  int SR = int_off();
-  PROC* p;
-  //printf("\n\n=== attempting kwakeup with event = %d ===\n\n", event);
-  for (int i = 0; i < 9; i++) {
-    p = &proc[i];
-    if (p->status == SLEEP && p->event == event) {
-      p->status = READY;
-      printf("waking up %d\n", p->pid);
-      enqueue(&readyQueue, p);
-    }
-  }
-  int_on(SR);
-}*/
 
 int kwait(int *status) {
   if (!running->child) {

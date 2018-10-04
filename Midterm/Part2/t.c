@@ -54,6 +54,7 @@ void IRQ_handler()
 
     if (vicstatus & (1<<4)){   // timer0,1=bit4
          timer_handler(0);
+         timer_handler(1);
     }
 }
 

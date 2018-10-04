@@ -77,13 +77,16 @@ int main()
 
    timer_init();
    kbd_init();
-   
+
    timer_start(0);
    kprintf("Welcome to WANIX in Arm\n");
    init();
 
-   printf("attempting kfork....\n\n\n");
-   kfork((int)body, 1);
+   printf("attempting kfork of producer and consumer ....\n\n\n");
+   kfork((int)producer, 1);
+   kfork((int)consumer, 1);
+   printf("kfork successful\n");
+
 
    while(1){
      if (readyQueue)

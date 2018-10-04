@@ -58,18 +58,17 @@ int tInsert(int value) {
     // 3 = t.seconds - value
 
     for (int i = 0; i < MAXTIMERS; i++) {
-        //                  0 30  <   20
         if((tQueue[i].seconds_left + sum) >= value || tQueue[i].status == READY) { // insert here
-          printf("secondsleft [%d] + sum [%d] >= value [%d]\n", tQueue[i].seconds_left, sum, value);
+          //printf("secondsleft [%d] + sum [%d] >= value [%d]\n", tQueue[i].seconds_left, sum, value);
           if (tQueue[i].status == READY) {    // at "end" of list
-            printf("Ready to insert %d at tQueue value =%d\n", value-sum, i);
+            //printf("Ready to insert %d at tQueue value =%d\n", value-sum, i);
             tQueue[i].status = SLEEP;
             tQueue[i].pid = pid;
             tQueue[i].seconds_left = value - sum;
             break;
           }
           else {          // tQueue[i] is already in use, that means we have to manipulate the array
-            printf("Detected tQueue[%d] is already busy\n", i);
+            //printf("Detected tQueue[%d] is already busy\n", i);
             int pos = i;
             // go to end of list
             while (tQueue[pos].status == SLEEP) {
@@ -135,10 +134,13 @@ void print_timers() {
     }
     */
 
-    printf("Remaining\tPID\t\tStatus\n---------------\n");
+    printf(    "PID   Status         Time(relative)     Time(absolute)\n--------------------------------------------------------\n");
     int i = 0;
-
+    int sum = 0;
     for (i = 0; i < MAXTIMERS; i++) {
-        printf("%d\t\t%d\t\t%d\n", tQueue[i].seconds_left, tQueue[i].pid, tQueue[i].status);
+      if (tQueue[i].status == SLEEP) {
+        sum+=tQueue[i].seconds_left;
+        printf("%d      %d               %d                %d\n", tQueue[i].pid, tQueue[i].status, tQueue[i].seconds_left, sum);
+      }
     }
 }
