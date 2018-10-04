@@ -31,8 +31,6 @@ int uart_init()
   int i; UART *up;
 
       //for realview-pbx-a9
-
-/*
   uart[0].base = (char *)(0x10009000);
   uart[1].base = (char *)(0x1000A000);
   uart[2].base = (char *)(0x1000B000);
@@ -43,17 +41,16 @@ int uart_init()
   uart[1].n = 1;
   uart[2].n = 2;
   uart[3].n = 3;
-*/
- 
+
         // for versatilepb:     ARM PL011
-  
+  /*
   for (i=0; i<4; i++){
     up = &uart[i];
     up->base = (char *)(0x101F1000 + i*0x1000);     // A000, B000, C000
     up->n = i;
   }
   uart[3].base = (char *)(0x10009000); // uart3 at 0x10009000
-  
+  */
 }
 
 int ugetc(UART *up)

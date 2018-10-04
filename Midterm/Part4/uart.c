@@ -31,20 +31,17 @@ int uart_init()
   int i; UART *up;
 
       //for realview-pbx-a9
-
-/*
-  uart[0].base = (char *)(0x10009000);
-  uart[1].base = (char *)(0x1000A000);
-  uart[2].base = (char *)(0x1000B000);
-  uart[3].base = (char *)(0x1000C000);
+  //uart[0].base = (char *)(0x10009000);
+  //uart[1].base = (char *)(0x1000A000);
+  //uart[2].base = (char *)(0x1000B000);
+  //uart[3].base = (char *)(0x1000C000);
 
 
-  uart[0].n = 0;
-  uart[1].n = 1;
-  uart[2].n = 2;
-  uart[3].n = 3;
-*/
- 
+  //uart[0].n = 0;
+  //uart[1].n = 1;
+  //uart[2].n = 2;
+  //uart[3].n = 3;
+
         // for versatilepb:     ARM PL011
   
   for (i=0; i<4; i++){
