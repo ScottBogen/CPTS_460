@@ -76,6 +76,19 @@ int ksleep(int event) {
   running->event = event;
   running->status = SLEEP;
   tswitch();
+
+  int_on(SR);
+}
+
+int killpipe(int event) {
+  int SR = int_off();
+
+  printf("=process %d goes to sleep=\n", running->pid);
+
+  running->event = event;
+  running->status = SLEEP;
+  //tswitch();
+
   int_on(SR);
 }
 
@@ -315,7 +328,7 @@ int body(int pid, int ppid, int func, int priority)
     printList("freeList",freeList);
 
     kprintf("proc %d running, parent = %d  ", running->pid, running->ppid);
-    kprintf("input a char [s|f|q|w|c] : ");
+    kprintf("input a char [s|f|q|w|r] : ");
     c = kgetc();
 
     printf("%c\n", c);
@@ -324,8 +337,8 @@ int body(int pid, int ppid, int func, int priority)
       case 's': tswitch();   printChildren(running);    break;
       case 'f': kfork((int)body, 1);                    break;
       case 'q': do_exit();                              break;
-      case 'w': do_wait();                              break;
-      case 'c': printChildren(running);                 break;
+      case 'w': pipe_writer();                          break;
+      case 'r': pipe_reader();                          break;
     }
   }
 }

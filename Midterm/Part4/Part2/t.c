@@ -72,7 +72,8 @@ int pipe_writer() {
     ugets(up,line);
     uprints(up, "\r\n");
     if (!strcmp(line, "exit")) {
-      ksleep(running);
+      killpipe(running);
+      fuprintf(up ,"WRITER DEAD\r\n");
       write_pipe(kpipe, line, strlen(line));
       break;
     }
@@ -157,8 +158,9 @@ int main()
 
 
    printf("attempting kfork....\n\n\n");
-   kfork((int)pipe_writer, 1);
-   kfork((int)pipe_reader, 1);
+   kfork((int)body, 1);           // P1
+   //kfork((int)pipe_writer, 1);  // P2
+   //kfork((int)pipe_reader, 1);  // P3
 
    while(1){
      if (readyQueue)
