@@ -222,14 +222,14 @@ int kputc(char c)
       scroll();
     }
     //printf("row=%d col=%d\n", row, col);
-    //putcursor(cursor);
+    putcursor(cursor);
     return;
   }
   if (c=='\b'){
     if (col>0){
       col--;
       erasechar();
-      //putcursor(cursor);
+      putcursor(cursor);
     }
     return;
   }
@@ -244,7 +244,7 @@ int kputc(char c)
       scroll();
     }
   }
-  //putcursor(cursor);
+  putcursor(cursor);
   //printf("row=%d col=%d\n", row, col);
 }
 
@@ -292,7 +292,7 @@ int kprintu(int x)
     kputc('0');
   else
     krpu(x);
-  //kputc(' ');
+  kputc(' ');
 }
 
 int kprinti(int x)

@@ -104,7 +104,7 @@ int printList(char *name, PROC *p)
 {
   kprintf("%s = ", name);
   while(p) {
-    kprintf("[%d %d ]->", p->pid, p->priority);
+    kprintf("[%d%d]->", p->pid, p->priority);
     p = p->next;
   }
   kprintf("NULL\n");

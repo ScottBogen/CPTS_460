@@ -28,7 +28,7 @@ tNode tQueue[MAXTIMERS];
         tq=4        sum = 4;            pass
         tq=6        sum = 10;           pass
         tq=2        sum = 12;           pass
-        tq=13       sum = 25;           insert here
+        tq=13       sum = 25;           in5sert here
 
         after:
         0    4    .   new   next
@@ -58,30 +58,41 @@ int tInsert(int value) {
     // 3 = t.seconds - value
 
     for (int i = 0; i < MAXTIMERS; i++) {
-        if((tQueue[i].seconds_left + sum) < value) { // insert here
+        //                  0 30  <   20
+        if((tQueue[i].seconds_left + sum) >= value || tQueue[i].status == READY) { // insert here
+          printf("secondsleft [%d] + sum [%d] >= value [%d]\n", tQueue[i].seconds_left, sum, value);
           if (tQueue[i].status == READY) {    // at "end" of list
+            printf("Ready to insert %d at tQueue value =%d\n", value-sum, i);
             tQueue[i].status = SLEEP;
             tQueue[i].pid = pid;
             tQueue[i].seconds_left = value - sum;
             break;
           }
-          else { // insert here and move the rest forward
+          else {          // tQueue[i] is already in use, that means we have to manipulate the array
+            printf("Detected tQueue[%d] is already busy\n", i);
             int pos = i;
             // go to end of list
-            while (tQueue[i].status == SLEEP) {
+            while (tQueue[pos].status == SLEEP) {
               pos++;
             }
+            printf("position of first empty area = %d\n", pos);
             // loop until back at i
+
+            // tQueue = 4 --> NULL
+            // insert a 10
+            // after: tQueue = 4 --> 6
+
             while (pos > i) {
               tQueue[pos] = tQueue[pos-1];
+              printf("new value at tQueue[%d] is %d\n",pos, tQueue[pos].seconds_left);
               if (pos == i+1) {
-                tQueue[pos].seconds_left -= value;
+                tQueue[pos].seconds_left = tQueue[pos].seconds_left - (value-sum);
               }
               pos--;
             }
             // back at position
             tQueue[i].status = SLEEP;
-            tQueue[i].pid = pid;
+            tQueue[i].pid = pid;    // 7   - 6
             tQueue[i].seconds_left = value - sum;
             break;
           }
@@ -107,16 +118,11 @@ void service_handler() {
     if (tQueue[0].status == SLEEP && tQueue[0].seconds_left <= 0) {
         // move everything back
         int pid = tQueue[0].pid;
-        int i;
-        for (i = 1; i < MAXTIMERS; i++) {
-            if (tQueue[i].status == SLEEP) {
-                tQueue[i-1] = tQueue[i];
-            }
-            tQueue[i-1].pid = 0;
-            tQueue[i-1].status = READY;
-            tQueue[i-1].seconds_left = 0;
-        }
+        int i=0;
 
+        for (i = 1; i < MAXTIMERS; i++) {
+            tQueue[i-1] = tQueue[i];
+        }
         kwakeup(&proc[pid]);
     }
 }
