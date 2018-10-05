@@ -16,6 +16,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /********************
 #define  SSIZE 1024
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define  NPROC  9
 #define  FREE   0
 #define  READY  1
@@ -39,28 +57,10 @@ typedef struct proc{
 }PROC;
 ***************************/
 #define NPROC 9
-#define N 8   /* N buffer cells */
 #include "kernel.h"
-
-
-typedef struct semaphore {
-  char* name;
-  int owner;
-  int value;
-  PROC* queue;
-}SEMAPHORE;
 
 PROC proc[NPROC], *running, *freeList, *readyQueue;
 int procsize = sizeof(PROC);
-
-struct semaphore* sp;     // changing functionality of sp: like sp = &empty;
-struct semaphore empty;
-struct semaphore full;
-struct semaphore pmutex;
-struct semaphore cmutex;
-
-int head, tail;
-char buf[N];
 
 int init()
 {
@@ -77,20 +77,6 @@ int init()
   freeList = &proc[0];
   readyQueue = 0;
 
-  printf("init semaphores\n");
-  sp->value = 1;
-
-  empty.value = 8;
-  full.value = 0;
-  pmutex.value = 1;
-  pmutex.owner = 0;
-  cmutex.value = 1;
-  cmutex.owner = 0;
-
-  //sp->owner = empty->owner = full->owner = 0;
-  head = 0;
-  tail = 0;
-
   printf("create P0 as initial running process\n");
   p = dequeue(&freeList);
   p->priority = 0;
@@ -100,81 +86,30 @@ int init()
   printList("freeList", freeList);
 }
 
-
-
-
-// functions as sleep
-int P(struct semaphore *s) {
+int ksleep(int event) {
   int SR = int_off();
-  s->value--;
-  //printf("P value = %d, owner = %d\n", s->value, s->owner);
-  if (s->value < 0) {
-    //printf("blocked semaphore, s = %d, name = %s\n", s->value, s->name);
-    block(s);
-  } else {
-    //printf("semaphore not blocked, s = %d, name = %s\n", s->value, s->name);
-  }
-  int_on(SR);
-}
 
-int block(struct semaphore *s) {
-  running->status = BLOCK;
-  enqueue(&s->queue, running);
+  printf("\n\n=== process %d goes to sleep ===\n\n", running->pid);
+
+  running->event = event;
+  running->status = SLEEP;
   tswitch();
-}
-
-// functions as wakeup
-int V(struct semaphore *s) {
-  int SR = int_off();
-  s->value++;
-  //printf("V value = %d, owner = %d\n", s->value, s->owner);
-  if (s->value <= 0) {
-    //printf("signaled semaphore, s = %d, name = %s\n", s->value, s->name);
-    signal(s);
-  } else {
-    //printf("semaphore not signaled, s = %d, name = %s\n", s->value, s->name);
-  }
   int_on(SR);
 }
 
-int signal(struct semaphore *s) {
-  PROC *p = dequeue(&s->queue);
-  p->status = READY;
-  enqueue(&readyQueue, p);
-}
-
-int producer() {
-  while(1) {
-    P(&empty);    // ex: 8 --> 7, empty starts off at 8
-    P(&pmutex);
-    /////////////////CRITICAL/////////////////
-    printf("PRODUCER {{{ input char: ");
-    char c = kgetc();
-    kputc(c);
-    printf("\n");
-    buf[head++] = c;
-    head %= N;
-    //////////////////////////////////////////
-    V(&pmutex);
-    V(&full);
-  }
-}
-
-int consumer() {
-  while(1) {
-    P(&full);   // ex: 0 --> 1, full starts off at 0 
-    P(&cmutex);
-    /////////////////CRITICAL/////////////////
-    char c = buf[tail];
-    printf("CONSUMER }}} received char %c\n", c);
-    if (c != 0) {
-      tail++;
-      tail %= N;
+int kwakeup(int event) {
+  int SR = int_off();
+  PROC* p;
+  //printf("\n\n=== attempting kwakeup with event = %d ===\n\n", event);
+  for (int i = 0; i < 9; i++) {
+    p = &proc[i];
+    if (p->status == SLEEP && p->event == event) {
+      p->status = READY;
+      printf("waking up %d\n", p->pid);
+      enqueue(&readyQueue, p);
     }
-    //////////////////////////////////////////
-    V(&cmutex);
-    V(&empty);
   }
+  int_on(SR);
 }
 
 int kwait(int *status) {
@@ -207,8 +142,7 @@ int kwait(int *status) {
       }
     }
 
-    //ksleep(running);   pre-semaphore
-    P(sp);
+    ksleep(running);
   }
 }
 
@@ -239,14 +173,12 @@ void kexit(int exitValue)
 
   tmp = &proc[1];
   // wakeup P1 if has given any child to P1; // kwakeup(&proc[1]);
-  printf("\n=== Attempting V on %d ===\n", tmp->pid);
-  //kwakeup(&proc[1]);  pre-semaphore
-  V(sp);
+  printf("\n=== Attempting kwakeup on %d ===\n", tmp->pid);
+  kwakeup(&proc[1]);  //.event
 
   // wakeup parent; // kwakeup(running->parent);
-  //printf("\n=== Attempting V on %d ===\n", running->parent->pid);
-  //kwakeup(running->parent);   pre-semaphore
-  //V(sp);
+  printf("\n=== Attempting kwakeup on %d ===\n", running->parent->pid);
+  kwakeup(running->parent);
 
   //old code: running->status = FREE ;    not needed since we mamrked as zombie
   running->priority = 0;
@@ -332,6 +264,8 @@ PROC *kfork(int func, int priority)
   // print child list
   printChildren(running);
 
+
+
   printf("%d kforked a child %d\n", running->pid, p->pid);
   return p;
 }
@@ -342,14 +276,14 @@ int printChildren(PROC* p) {
   printf("\n\n=== PID %d child list: ", p->pid);
 
   if (!p) {
-    printf("p does not exist ===\n");
+    printf("p does not exist\n");
     return 0;
   }
   if (p->child) {
     printf("[%d]", p->child->pid);
   }
   else {
-    printf("p has no children ===\n");
+    printf("p has no children\n");
     return -1;
   }
   PROC* tmp = p->child->sibling;
@@ -363,11 +297,11 @@ int printChildren(PROC* p) {
 
 int scheduler()
 {
-  //kprintf("proc %d in scheduler ", running->pid);
+  kprintf("proc %d in scheduler ", running->pid);
   if (running->status == READY)
       enqueue(&readyQueue, running);
   running = dequeue(&readyQueue);
-  //kprintf("next running = %d\n", running->pid);
+  kprintf("next running = %d\n", running->pid);
 }
 
 // process code
@@ -396,7 +330,7 @@ int body(int pid, int ppid, int func, int priority)
     printList("freeList",freeList);
 
     kprintf("proc %d running, parent = %d  ", running->pid, running->ppid);
-    kprintf("input a char [s|f|q|w|c|p] : ");
+    kprintf("input a char [s|f|q|w|k] : ");
     c = kgetc();
 
     printf("%c\n", c);
@@ -406,8 +340,8 @@ int body(int pid, int ppid, int func, int priority)
       case 'f': kfork((int)body, 1);                    break;
       case 'q': do_exit();                              break;
       case 'w': do_wait();                              break;
-      case 'c': consumer();                             break;
-      case 'p': producer();                             break;
+      case 'c': printChildren(running);                 break;
+      case 'k': kbd_test();                             break;
     }
   }
 }
@@ -424,4 +358,11 @@ int do_wait() {
   if (pid!=-1) {
     printf("found ZOMBIE with pid=%d and status=%d\n\n", pid,status);
   }
+}
+
+int kbd_test() {
+  printf("Test keyboard (kbd getc/putc): ");
+  int c = kgetc();
+  printf("\n Your key: ");
+  kputc(c);
 }

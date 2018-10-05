@@ -1,69 +1,131 @@
-/********************************************************************
-Copyright 2010-2017 K.C. Wang, <kwang@eecs.wsu.edu>
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+/************* uart.c file ****************/
+#define UDR 0x00      // data register
+#define UDS 0x04      // receive status / clear error
+#define UFR 0x18      // TxEmpty, RxFull
+#define CNTL 0x2C     // set baud rate 
+#define IMSC 0x38     // interrupt mask for TX and RX
+#define MIS 0x40      // interrupt status 
+#define SBUFSIZE 128  // buf size 
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-********************************************************************/
-#define DR   0x00
-#define FR   0x18
-
-#define RXFE 0x10
-#define TXFF 0x20
-
-typedef struct uart{
-  char *base;
-  int n;
+typedef volatile struct uart{
+    char *base; // base address; as char *
+    int n;      // uart number 0-3
+    char inbuf[SBUFSIZE];
+    int indata, inroom, inhead, intail;
+    char outbuf[SBUFSIZE];
+    int outdata, outroom, outhead, outtail;
+    volatile int txon; // 1=TX interrupt is on
 }UART;
 
-UART uart[4];
 
-int uart_init()
-{
+
+UART uart[4];     // 4 UART structures
+int uart_init() {
   int i; UART *up;
-
-      //for realview-pbx-a9
-  uart[0].base = (char *)(0x10009000);
-  uart[1].base = (char *)(0x1000A000);
-  uart[2].base = (char *)(0x1000B000);
-  uart[3].base = (char *)(0x1000C000);
-
-
-  uart[0].n = 0;
-  uart[1].n = 1;
-  uart[2].n = 2;
-  uart[3].n = 3;
-
-        // for versatilepb:     ARM PL011
-  /*
-  for (i=0; i<4; i++){
+  for (i=0; i<4; i++){ // uart0 to uart2 are adjacent
     up = &uart[i];
-    up->base = (char *)(0x101F1000 + i*0x1000);     // A000, B000, C000
-    up->n = i;
+    up->base = (char *)(0x101F1000 + i*0x1000);
+    *(up->base+CNTL) &= ~0x10; // disable UART FIFO
+    *(up->base+IMSC) |= 0x30;
+    up->n = i;           // UART ID number
+    up->indata = up->inhead = up->intail = 0;
+    up->inroom = SBUFSIZE;
+    up->outdata = up->outhead = up->outtail = 0;
+    up->outroom = SBUFSIZE;
+    up->txon = 0;
   }
   uart[3].base = (char *)(0x10009000); // uart3 at 0x10009000
-  */
 }
 
-int ugetc(UART *up)
+
+void uart_handler(UART *up)
 {
-  while (*(up->base + FR) & RXFE);
-  return *(up->base + DR);
+    u8 mis = *(up->base + MIS); // read MIS register
+    if (mis & (1<<4)) // MIS.bit4=RX interrupt
+      do_rx(up);
+    if (mis & (1<<5)) // MIS.bit5=TX interrupt
+      do_tx(up);
+    kwakeup(&mis);
 }
 
+
+int do_rx(UART *up) // RX interrupt handler
+{
+    char c;
+    c = *(up->base+UDR);
+    printf("rx interrupt: %c\n", c);
+    
+    if (c==0xD)
+      printf("\n");
+
+    up->inbuf[up->inhead++] = c;
+    up->inhead %= SBUFSIZE;
+    up->indata++; up->inroom--;
+}
+
+
+// TX is triggered by writing a char to the data register 
+int do_tx(UART *up) // TX interrupt handler
+{
+  char c;
+  printf("TX interrupt\n");
+
+  if (up->outdata <= 0){ // if outbuf[ ] is empty
+
+    *(up->base+IMSC) = 0x10; // disable TX interrupt
+    up->txon = 0; // turn off txon flag
+    return;
+  }
+
+  c = up->outbuf[up->outtail++];
+  up->outtail %= SBUFSIZE;
+  *(up->base+UDR) = (int)c; // write c to DR
+  up->outdata--; up->outroom++;
+}
+
+int ugetc(UART *up)   // return a char from UART
+{
+  char c;
+  while(up->indata < 0) {    // loop until up->data > 0 READONLY
+    lock();
+    ////
+    if (up->indata == 0) {
+      unlock();
+      ksleep(&up->base + MIS);
+    }
+  }
+  c = up->inbuf[up->intail++];
+  up->intail %= SBUFSIZE;    // updating variables: must disable interrupts
+  lock();
+  up->indata--; up->inroom++;
+  unlock();
+  return c;
+}
 int uputc(UART *up, char c)
 {
-  while(*(up->base + FR) & TXFF);
-  *(up->base + DR) = c;
+  // output a char to UART
+  //kprintf("uputc %c ", c);
+  if (up->txon){ //if TX is on, enter c into outbuf[]
+    up->outbuf[up->outhead++] = c;
+    up->outhead %= 128;
+    lock();
+    up->outdata++; up->outroom--;
+    unlock();
+    return;
+  }
+  // txon==0 means TX is off => output c & enable TX interrupt
+  // PL011 TX is triggered only if write char, else no TX interrupt
+
+  int i = *(up->base+UFR);
+  // read FR
+  while( *(up->base+UFR) & 0x20 ); // loop while FR=TXF
+  *(up->base+UDR) = (int)c;
+  // write c to DR
+  UART0_IMSC |= 0x30; // 0000 0000: bit5=TX mask bit4=RX mask
+  up->txon = 1;
 }
+
+
 
 int ugets(UART *up, char *s)          // s is an address, remember this or you'll be in trouble
 {

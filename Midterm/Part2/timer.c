@@ -112,6 +112,9 @@ void timer_handler(int n) {
       t->tick = 0; t->ss++;
       // make timer service decrement 
       service_handler();
+      if (tQueue[0].status == SLEEP) {
+        //print_timers();
+      }
 
       if (t->ss >= 60) {
 	      t->ss = 0; t->mm++;

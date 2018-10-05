@@ -21,8 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "vid.c"
 #include "exceptions.c"
 #include "kernel.c"
-#include "timer.c"
 #include "timerQueue.c"
+#include "timer.c"
 
 
 TIMER *tp[4];
@@ -54,7 +54,7 @@ void IRQ_handler()
 
     if (vicstatus & (1<<4)){   // timer0,1=bit4
          timer_handler(0);
-         timer_handler(1);
+         //timer_handler(1);
     }
 }
 

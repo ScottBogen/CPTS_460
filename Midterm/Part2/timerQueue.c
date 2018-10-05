@@ -74,7 +74,7 @@ int tInsert(int value) {
             while (tQueue[pos].status == SLEEP) {
               pos++;
             }
-            printf("position of first empty area = %d\n", pos);
+            printf("position of first empty index = %d\n", pos);
             // loop until back at i
 
             // tQueue = 4 --> NULL
