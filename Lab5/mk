@@ -1,0 +1,16 @@
+(cd USER; ./mku u1; ./mku u2; ./mku u3; ./mku u4)
+
+arm-none-eabi-as -mcpu=arm926ej-s ts.s -o ts.o
+arm-none-eabi-gcc -w -c -mcpu=arm926ej-s t.c -o t.o
+
+arm-none-eabi-ld -T t.ld ts.o t.o USER/u1.o USER/u2.o USER/u3.o USER/u4.o -Ttext=0x10000 -o t.elf
+
+arm-none-eabi-objcopy -O binary t.elf t.bin
+
+rm *.o *.elf
+
+echo ready to go?
+read dummy
+
+qemu-system-arm -M versatilepb -m 256M -kernel t.bin -serial mon:stdio \
+-initrd disk

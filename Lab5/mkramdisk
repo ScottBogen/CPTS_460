@@ -1,0 +1,11 @@
+# mkramdisk
+
+dd if=/dev/zero of=disk bs=1024 count=1024
+mke2fs -b 1024 disk 1024	# format as 1mb ext2fs
+mount -o loop disk /mnt		# mount it as a loop dev 
+(cd /mnt; mkdir bin boot dev ect user; ls -l)	# create dirs 
+umount /mnt		# unmount it 
+
+#(cd USER; ./mku u1; ./mku u2; ./mku u3; ./mku u4; ls /mnt/bin)
+
+echo done ramdisk
