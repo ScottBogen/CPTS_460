@@ -1,0 +1,2 @@
+qemu-system-arm -M versatilepb -m 128M -kernel kc.bin -serial mon:stdio -initrd disk
+

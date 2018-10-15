@@ -15,14 +15,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ********************************************************************/
 
 #include <stdint.h>
+//#include <string.h>
 #include "type.h"
 #include "string.c"
 #define VA(x) (0x80000000 + (u32)x)
 #define SVCMODE 0x13
 #define IRQMODE 0x12
+#define BLOCKSIZE 1024
 
 extern char _binary_u1_start, _binary_u1_end;
 extern int  _binary_u1_size;
+
+char* RAMdisk = (char*) 0x4000000; // global at 4MB -- from textbook
+
 
 char *tab = "0123456789ABCDEF";
 int BASE;
@@ -40,7 +45,29 @@ int mode;
 #include "fork.c"
 #include "svc.c"
 
+typedef unsigned char  u8;
+typedef unsigned short u16;
+
+#define TRK 18
+#define CYL 36
+#define BLK 1024
+
+//#include "ext2.h"
+
+
 char *uimage;
+
+typedef struct ext2_group_desc  GD;
+typedef struct ext2_inode       INODE;
+typedef struct ext2_dir_entry_2 DIR;
+typedef struct ext2_super_block SUPER;
+GD    *gp;
+DIR   *dp;
+INODE *ip;
+SUPER *sp;
+
+
+u8 ino;
 
 void copy_vectors(void) {
     extern uint32_t vectors_start;
@@ -70,11 +97,11 @@ int mkPtable()
 // L1 entry:|31          10|9|8765|4|32|10|
 //          |     addr     |0|DOM |1|00|01|
 //          |              |0|0000|1|00|01|
-//                          0    1     1   = addr OR 0x11        
+//                          0    1     1   = addr OR 0x11
 /***************************
 void xia(void) // build L1 and L2 page tables; called from reset()
 {
-  int i, j, pa; 
+  int i, j, pa;
   int *t1, *t2, *t3;
 
   extern int L1table, L2table;
@@ -85,7 +112,7 @@ void xia(void) // build L1 and L2 page tables; called from reset()
     t1[i] = 0;
   // creat 128 entries for 128MB RAM, ID mapped
 
-  pa  = (int)&L2table; // pa -> L2table(s)  
+  pa  = (int)&L2table; // pa -> L2table(s)
   for (i=0; i<128; i++){
     t1[i] = (pa | 0x11);
     pa += 1024;      // PA inc by 1K
@@ -111,8 +138,8 @@ void xia(void) // build L1 and L2 page tables; called from reset()
   /**************
   for (i=0; i<128; i++){ // 128 L2 page tables
      t3 = t2 + 256*i;
-     for (j=0; j<256; j++){ // each L2 table has 256 entries; inc by 4KB 
-       t3[j] = pa | 0xFFA; 
+     for (j=0; j<256; j++){ // each L2 table has 256 entries; inc by 4KB
+       t3[j] = pa | 0xFFA;
        pa + 4096;
      }
   }
@@ -126,13 +153,13 @@ void xia(void) // build L1 and L2 page tables; called from reset()
     }
   }
   *******************/
-/***         
+/***
  for (i=0; i<130; i++){ // 128 L2 page tables for RAM + 2 for I/O space
      t3 = t2 + 256*i;
      if (i==128)
        pa = 0x10000000;
-     for (j=0; j<256; j++){ // each L2 table has 256 entries; inc by 4KB 
-       t3[j] = pa | 0xFFA; 
+     for (j=0; j<256; j++){ // each L2 table has 256 entries; inc by 4KB
+       t3[j] = pa | 0xFFA;
        pa + 4096;
      }
   }
@@ -152,10 +179,10 @@ void IRQ_handler()  // called from irq_handler in ts.s
     int vicstatus, sicstatus;
     int ustatus, kstatus;
     mode = getcpsr() & 0x1F;
-    
+
     // read VIC status register to find out which interrupt
     vicstatus = VIC_STATUS;
-    sicstatus = SIC_STATUS;  
+    sicstatus = SIC_STATUS;
     //kprintf("vicstatus=%x sicstatus=%x\n", vicstatus, sicstatus);
 
     if (vicstatus & 0x0010){
@@ -164,7 +191,7 @@ void IRQ_handler()  // called from irq_handler in ts.s
     }
     if (vicstatus & 0x1000){
          uart0_handler();
-	 // kprintf("U0 "); 
+	 // kprintf("U0 ");
     }
     if (vicstatus & 0x2000){
          uart1_handler();
@@ -176,11 +203,35 @@ void IRQ_handler()  // called from irq_handler in ts.s
     }
 }
 
+void search(INODE *ip) {
+  int i;
+  for (i=0; i<15; i++){
+    if (ip->i_block[i]) {
+      printf("i_block[%d] has contents\n", i);
+    }
+  }
+}
+
+int get_block(u32 blk, char *buf) {
+  char *cp = RAMdisk + blk*BLK;
+  int i = RAMdisk + blk*BLK;
+  printf("cp location = %x\n", i);
+  memcpy(buf, cp, BLK);
+}
+
+int put_block(u32 blk, char *buf) // write to a 1KB block
+{
+  char *cp = RAMdisk + blk*BLK;
+  memcpy(cp, buf, BLK);
+}
+
+char buf1[BLK], buf2[BLK];
+
 int main()
-{ 
-   int i,a; 
-   char string[32]; 
-   char line[128]; 
+{
+   int i,a;
+   char string[32];
+   char line[128];
    int size = sizeof(int);
    unsigned char kbdstatus;
    unsigned char key, scode;
@@ -188,9 +239,9 @@ int main()
    int usize, usize1;
 
    color = YELLOW;
-   row = col = 0; 
+   row = col = 0;
    BASE = 10;
-      
+
    fbuf_init();
    kprintf("                     Welcome to WANIX in Arm\n");
    kprintf("LCD display initialized : fbuf = %x\n", fb);
@@ -202,17 +253,17 @@ int main()
      printf("SVC mode\n");
    if (mode == IRQMODE)
      printf("IRQ mode\n");
-   
+
    kbd_init();
    uart_init();
    up = upp[0];
    /* enable UART0 IRQ */
-   VIC_INTENABLE |= (1<<4);  // timer0,1 at 4 
+   VIC_INTENABLE |= (1<<4);  // timer0,1 at 4
    VIC_INTENABLE |= (1<<12); // UART0 at 12
    VIC_INTENABLE |= (1<<13); // UART1 at 13
    VIC_INTENABLE = 1<<31;    // SIC to VIC's IRQ31
 
-   //VIC_INTENABLE |= (1<<5);  // timer3,4 at 5 
+   //VIC_INTENABLE |= (1<<5);  // timer3,4 at 5
 
    /* enable UART0 RXIM interrupt */
    UART0_IMSC = 1<<4;
@@ -224,20 +275,50 @@ int main()
    kbd->control = 1<<4;
    timer_init();
    timer_start(0);
-   
+
    kernel_init();
-   // kprintf("u1 start=%x usize=%x\n", uimage, usize);
-  
+   //kprintf("u1 start=%x usize=%x\n", uimage, usize);
+
+   ///////////////////////////////////////////////////////////////////////////
+   //                              LAB 5 PART 2                             //
+   u16 iblk;
+
+   //extern char _binary_ramdisk_start, _binary_ramdisk_end;
+   //u32 size_disk = &_binary_ramdisk_end - &_binary_ramdisk_start;
+   //cq = RAMdisk;
+
+  // memcpy(cq, cp, size_disk);
+
+   printf("RAMdisk start = %x\n", RAMdisk);
+
+   printf("read block#1 (SP)\n");
+   get_block(1, buf1);  // get superblock
+   sp = (SUPER*)buf1;
+   printf("magic? %x\n", sp->s_magic);
+
+   printf("read block#2 (GD)\n");
+   get_block(2, buf1);   // get group descriptor
+   gp = (GD*)buf1;    // gd pointer points to GD
+   iblk = gp->bg_inode_table;
+
+   printf("Inode block = %d\n", iblk);
+
+   get_block(iblk, buf1);
+   ip = (INODE*) buf1 + 1;
+   search(ip);
+
+   ///////////////////////////////////////////////////////////////////////////
+
    kfork("u1");
    kfork("u2");
    kfork("u3");
    kfork("u4");
 
    unlock();
-   /********   
+   /********
    kprintf("test memory protection? (y|n): ");
    kgetline(string);
-   
+
    if (string[0]=='y'){
       color = YELLOW;
       kprintf("\ntry to access 2GB: should cause data_abort\n");
@@ -251,6 +332,6 @@ int main()
    kprintf("P0 switch to P1 : enter a line : ");
    kgetline(string);
    kprintf("\n");
-   
+
    tswitch();  // switch to run P1 ==> never return again
 }

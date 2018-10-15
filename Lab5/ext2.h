@@ -10,9 +10,9 @@ struct ext2_inode {
 	u16	i_links_count;	/* Links count */
 	u32	i_blocks;	/* Blocks count */
 	u32	i_flags;	/* File flags */
-        u32     dummy;
+  u32     dummy;
 	u32	i_block[15];    /* Pointers to blocks */
-        u32     pad[7];         /* inode size MUST be 128 bytes */
+  u32     pad[7];         /* inode size MUST be 128 bytes */
 };
 
 struct ext2_group_desc

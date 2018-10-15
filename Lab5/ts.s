@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ********************************************************************/
 
-	
+
 	.text
 .code 32
 .global reset_handler
@@ -26,7 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 .global int_off, int_on, lock, unlock, getcpsr
 .global switchPgdir
 .global get_fault_status, get_fault_addr, get_spsr
-	
+.globl _readfd
+
 //.set Mtable, 0x4000  // level-1 page table must be at 16K boundary
 /********************************************************
 mode:	USER: 10000  0x10
@@ -44,7 +45,7 @@ reset_handler:
   LDR r2, [r1,#0]    // r2 = procsize
   ADD r0, r0, r2     // r0 -> high end of proc[0]
   MOV sp, r0
-	
+
   /* go in IRQ mode to set IRQ stack and enable IRQ interrupts */
   MSR cpsr, #0xD2
   LDR sp, =irq_stack_top  // set IRQ stack poiner
@@ -76,7 +77,7 @@ reset_handler:
   nop
   nop
 ***********/
-	
+
 /*********L1 section entry ***********************************
  |3            2|1|1111111|11|0|0000|0|00|00
  |1            0|9|8765432|10|9|8765|4|32|10|
@@ -95,7 +96,7 @@ reset_handler:
   // set domain0: 01=client(check permission) 11=master(no check)
   mov r0, #0x5               //0x5=101 for CLIENT
   mcr p15, 0, r0, c3, c0, 0
-	
+
 // enable MMU
   mrc p15, 0, r0, c1, c0, 0
   orr r0, r0, #0x00000001     // set bit0 to 1
@@ -103,7 +104,7 @@ reset_handler:
   nop
   nop
   nop
-	
+
   mrc p15, 0, r2, c2, c0
   mov r2, r2
  /*
@@ -115,13 +116,13 @@ reset_handler:
 //  ldr pc, [r0]          OR  the following equivalent statements
   ldr r0, =mainstart
   ldr pc, [r0]
-	
+
   B .
-	
+
 .align 4
 Mtable:	    .word 0x4000
 mainstart:  .word main
-	
+
 .align 4
 
 irq_handler:         // IRQ entry point
@@ -129,14 +130,14 @@ irq_handler:         // IRQ entry point
 	             // __attribute__((interrupt))svc_handler(),then no need
   stmfd	sp!, {r0-r12, lr}  // save all Umode regs in kstack
 
-  bl	IRQ_handler  // call IRQ_handler() in C in svc.c file   
+  bl	IRQ_handler  // call IRQ_handler() in C in svc.c file
 
   ldmfd	sp!, {r0-r12, pc}^ // pop from kstack but restore Umode SR
 
 datahandler:
   sub	lr, lr, #4
   stmfd	sp!, {r0-r12, lr}
-  bl	data_handler  
+  bl	data_handler
   ldmfd	sp!, {r0-r12, pc}^
 
 tswitch: // tswitch() in Kmode
@@ -153,7 +154,7 @@ tswitch: // tswitch() in Kmode
   MSR cpsr, r0
 
   stmfd	sp!, {r0-r12, lr}
-	
+
   LDR r0, =running         // r0=&running
   LDR r1, [r0,#0]          // r1->runningPROC
   str sp, [r1,#4]          // running->ksp = sp
@@ -189,7 +190,7 @@ svc_entry:
    mrs r6, cpsr       // r6 = SVC mode cpsr
    mov r7, r6         // save a copy in r7
    orr r6, r6, #0x1F  // r0 = SYS mode
-   msr cpsr, r6       // change cpsr in SYS mode	
+   msr cpsr, r6       // change cpsr in SYS mode
 // now in SYS mode, r13 same as User mode sp r14=user mode lr
    str sp, [r5, #8]   // save usp into proc.usp at offset 8
    str lr, [r5, #12]  // save Umode PC into PROC.upc at offset 12
@@ -211,17 +212,17 @@ svc_entry:
    BIC r6, r6, #0xC0  // I and F bits=0 enable IRQ,FIQ
    MSR cpsr, r6
 
-  bl	svc_handler  
+  bl	svc_handler
 
 goUmode:
   ldr r4, =running   // r4=&running
   ldr r5, [r4, #0]   // r5 -> PROC of running
- 	
+
 // change to SYS mode
   mrs r6, cpsr       // r6 = SVC mode cpsr
   mov r7, r6         // save a copy in r7
   orr r6, r6, #0x1F  // r0 = SYS mode
-  msr cpsr, r6       // change cpsr to SYS mode	
+  msr cpsr, r6       // change cpsr to SYS mode
 
 // now in SYS mode: restore usp and cpsr
    ldr sp, [r5, #8]   // restore usp from PROC.usp
@@ -231,7 +232,7 @@ goUmode:
    msr cpsr, r7       // back to SVC mode
    ldr r4, [r5, #16]
    mrs r4, spsr       // restore saved Umode cpsr
-	
+
    // replace saved r0 on stack with the return value r from svc_handler()
    add sp, sp, #4     // pop saved r0 off stack
    stmfd sp!,{r0}     // push r as the saved r0 to Umode
@@ -244,29 +245,29 @@ int_off:          // SR = int_off()
   mov r1, r0
   ORR r1, r1, #0x80
   MSR cpsr, r1    // return value in r0 = original cpsr
-  mov pc,lr	
+  mov pc,lr
 
 int_on:           // int_on(SR);  SR in r0
   MSR cpsr, r0
-  mov pc,lr	
+  mov pc,lr
 
 
 unlock:
   MRS r0, cpsr
   BIC r0, r0, #0x80
   MSR cpsr, r0
-  mov pc,lr	
+  mov pc,lr
 
 lock:
   MRS r0, cpsr
   ORR r0, r0, #0x80
   MSR cpsr, r0
-  mov pc,lr	
+  mov pc,lr
 
 getcpsr:
    mrs r0, cpsr
    mov pc, lr
-	
+
 vectors_start:
   LDR PC, reset_handler_addr
   LDR PC, undef_handler_addr
@@ -289,7 +290,7 @@ fiq_handler_addr:            .word fiq_handler
 vectors_end:
 
 switchPgdir:	// switch pgdir to new PROC's pgdir; passed in r0
-  // r0 contains address of PROC's pgdir address	
+  // r0 contains address of PROC's pgdir address
   mcr p15, 0, r0, c2, c0, 0   // set TTBase
   mov r1, #0
   mcr p15, 0, r1, c8, c7, 0   // flush TLB
@@ -300,15 +301,15 @@ switchPgdir:	// switch pgdir to new PROC's pgdir; passed in r0
   mov r0, #0x5                // 0101 for MASER
   //mov r0, #0xD                  // 1101
   mcr p15, 0, r0, c3, c0, 0
-	
+
   mov pc, lr                  // return
-	
+
 get_fault_status:	// read and return MMU reg 5
   MRC p15,0,r0,c5,c0,0    // read DFSR
-  mov pc, lr	
+  mov pc, lr
 get_fault_addr:	         // read and return MMU reg 6
   MRC p15,0,r0,c6,c0,0    // read DFSR
-  mov pc, lr	
+  mov pc, lr
 get_spsr:
   mrs r0, spsr
   mov pc, lr
@@ -320,4 +321,4 @@ get_spsr:
 //     switch cpsr back to kmode, OR seems a simpler way by
 //(2). stmfd sp,{regs}^, which pushes umode regs to kstack, then pop off kstack
 //
-// get user mode r13 (sp) by the same technique	
+// get user mode r13 (sp) by the same technique
