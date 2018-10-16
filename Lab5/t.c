@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //#include <string.h>
 #include "type.h"
 #include "string.c"
+
 #define VA(x) (0x80000000 + (u32)x)
 #define SVCMODE 0x13
 #define IRQMODE 0x12
@@ -26,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern char _binary_u1_start, _binary_u1_end;
 extern int  _binary_u1_size;
 
-char* RAMdisk = (char*) 0x4000000; // global at 4MB -- from textbook
+char* RAMdisk = (char*) 0x4000000; // global at 4MB
 
 
 char *tab = "0123456789ABCDEF";
@@ -56,6 +57,7 @@ typedef unsigned short u16;
 
 
 char *uimage;
+char buf1[BLK], buf2[BLK];
 
 typedef struct ext2_group_desc  GD;
 typedef struct ext2_inode       INODE;
@@ -68,6 +70,9 @@ SUPER *sp;
 
 
 u8 ino;
+u16 iblk;   // for storing inode table block
+u16 blocks_per_inode = BLK / sizeof(INODE);
+
 
 void copy_vectors(void) {
     extern uint32_t vectors_start;
@@ -203,19 +208,11 @@ void IRQ_handler()  // called from irq_handler in ts.s
     }
 }
 
-void search(INODE *ip) {
-  int i;
-  for (i=0; i<15; i++){
-    if (ip->i_block[i]) {
-      printf("i_block[%d] has contents\n", i);
-    }
-  }
-}
+
 
 int get_block(u32 blk, char *buf) {
   char *cp = RAMdisk + blk*BLK;
   int i = RAMdisk + blk*BLK;
-  printf("cp location = %x\n", i);
   memcpy(buf, cp, BLK);
 }
 
@@ -225,7 +222,126 @@ int put_block(u32 blk, char *buf) // write to a 1KB block
   memcpy(cp, buf, BLK);
 }
 
-char buf1[BLK], buf2[BLK];
+int search(INODE *ip) {
+  int i;
+  for (i=0; i<15; i++){
+    if (ip->i_block[i] > 0) {
+      printf("i_block[%d] has contents = %d\n", i, ip->i_block[i]);
+      return i;
+    }
+  }
+  return -1;
+}
+
+void printdirs(char* cp, DIR * dp, char* buf1, char* str) {
+  while(cp < buf1 + BLK){
+     //printf(dp->name);
+     //printf("\t\t\t");
+
+     printf("dp->name = %s\n", dp->name);
+
+     if (strcmp(str, dp->name) == 0) {
+       printf("---- %s found! ----\n", str);
+       ino = dp->inode;
+     }
+
+     cp += dp->rec_len;
+     dp = (DIR *)cp;
+  }
+  printf("\n");
+}
+
+
+
+// example call: loader("/bin/u1", running);
+// routine:
+
+// 1. tempblk = search(ip) to find a block that has contents
+// 2. ip = ip->iblock[tempblk]
+// 3. get_block(ip, buf1)
+// 4. dp = (DIR*) buf1;
+// 5. cp = buf1;
+// 6. loop:
+// 6.a.    while(cp < buf1 + BLK)
+// 6.b         if (dp->name == string) then set ino to it
+// 7. block = (ino - 1) / 8 + 5;
+// 8. position = (ino - 1) % 8;
+// 9. get_block(block, buf1);
+// 10. ip = (INODE *)buf1 + position;
+int loader(char* filename, PROC* p) {
+
+
+  char* str = filename;
+  char* cp;
+
+  if (str[0] == '/') {
+    str++;
+  }
+
+  printf("Loading filename %s\n", str);
+
+  // str = bin/u1
+  int i = 0;
+  while(1) {
+    char tmp[32];
+    printf("str = %s\n", str);
+    while(str[i] != '/' && str[i] != '\0') {
+      tmp[i] = str[i];
+      i++;
+    }
+    printf("tmp = %s\n", tmp);
+
+    // str broke on \ or '\0'
+    int tempblk = search(ip);       // Block #0 has contents!
+    ip = ip->i_block[tempblk];      // ip set to block #0
+    get_block(ip, buf1);
+    dp = (DIR*) buf1;
+    cp = buf1;
+
+    printdirs(cp, dp, buf1, tmp);
+
+
+    kgetc();
+    int block = (ino - 1) / 8 + iblk;
+    int position = (ino - 1) % 8;
+    printf("Next location: block %d position %d, from ino = %d\n", block, position, ino);
+    get_block(block, buf1);
+    ip = (INODE*)buf1 + position;
+
+
+    // found u1
+    if (str[i] == '\0') {
+      printf("Found %s at ino = %d, ip is set, returning to main\n", str, ino);
+      printf("Testing inode: \n");
+      printf("size = %d\n", ip->i_size);
+      printf("mode = %x\n", ip->i_mode);
+      printf("blocks = %d\n", ip->i_blocks);
+
+
+      for (i = 0; i < 4; i++) {
+        kgetc();
+        get_block((u16)ip->i_block[i], 0x8000000 + BLK*i);
+        // write to 0x8000000 + BLK*i;
+        printf("Wrote block %d to memory\n", (u16)ip->i_block[i]);
+      }
+
+
+      return 1;
+    }
+    else {
+      str+=i+1;
+
+      while(i>=0) {
+        tmp[i] = 0;
+        i--;
+      }
+
+      printf("Continuing on with str=%s\n", str);
+      i = 0;
+      kgetc();
+    }
+  }
+}
 
 int main()
 {
@@ -281,7 +397,6 @@ int main()
 
    ///////////////////////////////////////////////////////////////////////////
    //                              LAB 5 PART 2                             //
-   u16 iblk;
 
    //extern char _binary_ramdisk_start, _binary_ramdisk_end;
    //u32 size_disk = &_binary_ramdisk_end - &_binary_ramdisk_start;
@@ -290,6 +405,8 @@ int main()
   // memcpy(cq, cp, size_disk);
 
    printf("RAMdisk start = %x\n", RAMdisk);
+
+   printf("blocks_per_inode = %d\n", blocks_per_inode);
 
    printf("read block#1 (SP)\n");
    get_block(1, buf1);  // get superblock
@@ -305,7 +422,19 @@ int main()
 
    get_block(iblk, buf1);
    ip = (INODE*) buf1 + 1;
-   search(ip);
+   int tempblk = search(ip);      // ip has contents at position 0
+
+   loader("/bin/u1", running);
+
+   // ino now stores the correct inode location of u1
+
+
+
+
+
+
+
+   //printdirs(cp,dp,buf1);
 
    ///////////////////////////////////////////////////////////////////////////
 
