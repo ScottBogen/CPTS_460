@@ -27,6 +27,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern char _binary_u1_start, _binary_u1_end;
 extern int  _binary_u1_size;
 
+extern char _binary_u2_start, _binary_u2_end;
+extern int  _binary_u2_size;
+
+extern char _binary_u3_start, _binary_u3_end;
+extern int  _binary_u3_size;
+
+extern char _binary_u4_start, _binary_u4_end;
+extern int  _binary_u4_size;
+
+
+
 char* RAMdisk = (char*) 0x4000000; // global at 4MB
 
 
@@ -65,7 +76,7 @@ typedef struct ext2_dir_entry_2 DIR;
 typedef struct ext2_super_block SUPER;
 GD    *gp;
 DIR   *dp;
-INODE *ip;
+INODE *ip, *ip_save;
 SUPER *sp;
 
 
@@ -235,10 +246,10 @@ int search(INODE *ip) {
 
 void printdirs(char* cp, DIR * dp, char* buf1, char* str) {
   while(cp < buf1 + BLK){
-     //printf(dp->name);
+     printf("%s\n", dp->name);
      //printf("\t\t\t");
 
-     printf("dp->name = %s\n", dp->name);
+     //printf("dp->name = %s\n", dp->name);
 
      if (strcmp(str, dp->name) == 0) {
        printf("---- %s found! ----\n", str);
@@ -269,7 +280,6 @@ void printdirs(char* cp, DIR * dp, char* buf1, char* str) {
 // 9. get_block(block, buf1);
 // 10. ip = (INODE *)buf1 + position;
 int loader(char* filename, PROC* p) {
-
 
   char* str = filename;
   char* cp;
@@ -317,6 +327,11 @@ int loader(char* filename, PROC* p) {
       printf("mode = %x\n", ip->i_mode);
       printf("blocks = %d\n", ip->i_blocks);
 
+      /*
+      All the processes run in the same virtual address space of [2 GB to 2 GB + 1 MB] but
+      each has a separate physical memory area, which is isolated from other processes and
+      protected by the MMU hardware
+      */
 
       for (i = 0; i < 4; i++) {
         kgetc();
@@ -325,7 +340,7 @@ int loader(char* filename, PROC* p) {
         printf("Wrote block %d to memory\n", (u16)ip->i_block[i]);
       }
 
-
+      // return to old ip state (for next usermode image)
       return 1;
     }
     else {
@@ -404,10 +419,8 @@ int main()
 
   // memcpy(cq, cp, size_disk);
 
-   printf("RAMdisk start = %x\n", RAMdisk);
-
+   printf("disk start = %x\n", RAMdisk);
    printf("blocks_per_inode = %d\n", blocks_per_inode);
-
    printf("read block#1 (SP)\n");
    get_block(1, buf1);  // get superblock
    sp = (SUPER*)buf1;
@@ -422,26 +435,30 @@ int main()
 
    get_block(iblk, buf1);
    ip = (INODE*) buf1 + 1;
-   int tempblk = search(ip);      // ip has contents at position 0
 
+   kfork("u1");
    loader("/bin/u1", running);
 
-   // ino now stores the correct inode location of u1
-
-
-
-
-
-
+   get_block(iblk, buf1);
+   ip = (INODE*) buf1 + 1;
 
    //printdirs(cp,dp,buf1);
 
    ///////////////////////////////////////////////////////////////////////////
-
-   kfork("u1");
    kfork("u2");
+   loader("/bin/u2", running);
+
+   get_block(iblk, buf1);
+   ip = (INODE*) buf1 + 1;
+
    kfork("u3");
+   loader("/bin/u3", running);
+
+   get_block(iblk, buf1);
+   ip = (INODE*) buf1 + 1;
+
    kfork("u4");
+   loader("/bin/u4", running);
 
    unlock();
    /********
@@ -458,8 +475,10 @@ int main()
      printf("\n");
    ************/
    color = WHITE;
-   kprintf("P0 switch to P1 : enter a line : ");
-   kgetline(string);
+   kprintf("Currently running P%d\n", running->pid);
+  // kprintf("P0 switch to P1 : enter a line : ");
+   //kgetline(string);
+   printf("Switch to P1\n");
    kprintf("\n");
 
    tswitch();  // switch to run P1 ==> never return again

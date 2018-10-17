@@ -43,6 +43,9 @@ int svc_handler(volatile int a, int b, int c, int d)
   }
   // inton();
   // kprintf("  svc_hamdler return ");
+
+  //running->kstack[SSIZE-14] = r;    // from book.
+
   color = ocolor;
   // kprintf("  r = %x\n", r); kgetc();
   return r; // return to to goUmode: which will replace r0 in Kstack with r
