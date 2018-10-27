@@ -1,0 +1,6 @@
+1. run mkdisk NAME to create a disk
+
+2. gcc main.c getino.o ls_cd_pwd.o 
+
+3. Run  a.out
+
