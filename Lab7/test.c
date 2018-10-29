@@ -41,3 +41,25 @@ void tokenize(char* pathname) {
     }
 }
 
+// if a low rank process receives a value from a high rank process, it will not store the value
+// global = value received + local
+
+
+/*
+    Parallel prefix(A[1...n]) {
+        Let rank denote my rank
+        L = A[rank]   // local array
+        G = L         // global array, initially the same as L
+
+        for (i = 0 to (lg p - 1)) {
+          // If i'm rank 101 (5), my neighbors are 001, 111, and 100
+          // mate = toggle the bits of my rank in binary
+
+        }
+
+    }
+
+
+
+
+*/

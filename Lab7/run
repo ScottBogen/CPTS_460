@@ -1,0 +1,3 @@
+gcc -w -o out main.c
+sleep 1
+./out

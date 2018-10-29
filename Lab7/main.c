@@ -8,7 +8,6 @@
 #include <string.h>
 #include <libgen.h>
 #include <sys/stat.h>
-
 #include "type.h"
 
 MINODE minode[NMINODE];
@@ -23,7 +22,14 @@ int  fd, dev;
 int  nblocks, ninodes, bmap, imap, iblk, inode_start;
 char line[256], cmd[32], pathname[256];
 
+int ino;
+char buf[BLKSIZE];
+
+
 MINODE *iget();
+
+#include "util.c"
+
 
 /******* WRITE YOUR OWN util.c and others ***********
 #include "util.c"
@@ -70,7 +76,7 @@ int mount_root()
   nblocks = sp->s_blocks_count;
   // print nblocks, ninodes
 
-  get_block(dev, 2, buf); 
+  get_block(dev, 2, buf);
   gp = (GD *)buf;
 
   bmap = gp->bg_block_bitmap;
@@ -93,12 +99,12 @@ int main(int argc, char *argv[ ])
 
   fd = open(disk, O_RDWR);
   if (fd < 0){
-     printf("open %s failed\n", disk);  
+     printf("open %s failed\n", disk);
      exit(1);
   }
   dev = fd;
 
-  init();  
+  init();
   mount_root();
   printf("root refCount = %d\n", root->refCount);
 
@@ -127,10 +133,10 @@ int main(int argc, char *argv[ ])
        //chdir(pathname);
 
     if (strcmp(cmd, "pwd")==0)
-       //pwd(running->cwd);
+       print(root);
 
     if (strcmp(cmd, "quit")==0)
-       //quit();
+       quit();
   }
 }
 
