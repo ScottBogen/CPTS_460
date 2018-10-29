@@ -58,10 +58,7 @@ void tokenize(char* pathname) {
 }
 
 
-
-
-
-
+// returns MINODE of the desired inode from integer number
 MINODE *iget(int dev, int ino) {
 	/*
 	(1). Search minode[ ] for an existing entry with the needed (dev, ino):
@@ -97,7 +94,7 @@ MINODE *iget(int dev, int ino) {
 	int blk    = (ino-1) / 8 + inode_start;
 	int offset = (ino-1) % 8;
 
-	printf("iget: ino=%d blk=%d offset=%d\n", ino, blk, offset);
+	//printf("iget: ino=%d blk=%d offset=%d\n", ino, blk, offset);
 
 	// load inode, set attributes
 	get_block(dev, blk, buf);
