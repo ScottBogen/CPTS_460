@@ -184,8 +184,9 @@ int getino(char *pathname) {
 	if (pathname[0] == "/") {		// absolute
 		mip = iget(dev, 2);
 		pathname++;
-	} else {
+	} else {										// relative
 		mip = iget(dev, running->cwd->ino);
+		pathname++;
 	}
 
 	tokenize(pathname);		// name = [abc,def,hij]

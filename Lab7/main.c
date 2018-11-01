@@ -133,15 +133,12 @@ int main(int argc, char *argv[ ])
     printf("cmd=%s pathname=%s\n", cmd, pathname);
 
     if (strcmp(cmd, "ls")==0) {
-      printf("doing ls\n");
-      print(root);
+      ls_dir(pathname);
     }
-       //ls(pathname);
 
     if (strcmp(cmd, "cd")==0) {
        cd(pathname);
     }
-       //chdir(pathname);
 
     if (strcmp(cmd, "pwd")==0) {
        pwd();
@@ -173,6 +170,78 @@ int cd(char* path) {
   printf("cd to %s at ino %d\n", path, mip->ino);
   iput(mip);
 }
+
+int ls_dir(char* path) {
+  char* cp;
+  DIR* dp;
+
+  if (!path) {
+    path = "/";
+  }
+
+  ino = getino(path)
+  MINODE* mip = iget(dev, ino);
+  INODE* ip = &mip->INODE;
+
+  get_block(ip->i_block[0], BLKSIZE, buf);
+
+  cp = buf;
+  dp = (DIR*) buf;
+
+  // skip .
+  cp += dp->rec_len;
+  dp = (DIR*)cp;
+  // skip ..
+  cp += dp->rec_len;
+  dp = (DIR*)cp;
+
+  while (cp < buf + BLKSIZE) {
+    if (dp->inode == 0) {
+      return 0;
+    }
+
+    ls_file(dp->inode);
+    printf("%20s\n", dp->name);
+
+    cp += dp->rec_len;
+    dp = (DIR*)cp;
+  }
+  return 1;
+}
+
+int ls_file(int ino) {
+  MINODE* mip = iget(dev, ino);
+  INODE* ip = &mip->INODE;
+
+  // file type:
+  if      (ip->i_mode == 0x41ed) { printf("d"); }
+  else if (ip->i_mode == 0x81a4) { printf("r"); }
+  else if (ip->i_mode == 0xa1ff) { printf("l"); }
+  else                           { printf("-"); }
+
+  char permissions[9] = "xwrxwrxwr";
+  for (int i = 8; i >= 0; i--) {
+    if (ip->imode & (1 << i)) { printf(permissions[i]); }
+    else { printf("-"); }
+  }
+
+  printf("%4d", ip->i_links_count);
+  printf("%2d", ip->i_uid);
+  printf("%2d", ip->i_gid);
+
+
+  char temp[32];
+  ctime_r((time_t *)&mip->INODE.i_mtime, temp);   // asshole time
+  temp[strlen(temp)-1] = 0;    // null terminate
+  printf("%.*s", 12, temp+4);  // format time just like ls -l
+  printf(" %6d", ip->i_size);
+
+  iput(mip);
+
+  return 1;
+}
+
+
 
 int pwd() {
   if (running->cwd->ino == 2) {
