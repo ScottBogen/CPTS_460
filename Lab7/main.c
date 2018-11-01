@@ -96,8 +96,7 @@ int mount_root()
 }
 
 char *disk = "mydisk";
-int main(int argc, char *argv[ ])
-{
+int main(int argc, char *argv[]) {
   int ino;
   char buf[BLKSIZE];
   if (argc > 1)
@@ -120,7 +119,7 @@ int main(int argc, char *argv[ ])
   running->cwd = iget(dev, 2);
   printf("root refCount = %d\n", root->refCount);
 
-  while(1){
+  while(1) {
     printf("input command : [ls|cd|pwd|quit] ");
     fgets(line, 128, stdin);
     line[strlen(line)-1] = 0;
@@ -146,6 +145,9 @@ int main(int argc, char *argv[ ])
 
     if (strcmp(cmd, "quit")==0) {
        quit();
+    }
+    if (strcmp(cmd, "print")==0) {
+	print(root);
     }
   }
 }
@@ -175,33 +177,50 @@ int ls_dir(char* path) {
   char* cp;
   DIR* dp;
 
+  printf("running ino = %d\n", running->cwd->ino);
+  printf("path = %s\n", path);
+
   if (!path) {
-    path = "/";
+    ino = running->cwd->ino;
+    // iget returns a MINODE* from an int ino;
+    // search returns an int ino from MINODE* and char* path
+    // getino returns an int ino from a path
+  }
+  else {
+    ino = getino(path);
   }
 
-  ino = getino(path)
+  printf("target ino = %d\n", ino);
   MINODE* mip = iget(dev, ino);
+  printf("mip ino says: %d\n", mip->ino);
   INODE* ip = &mip->INODE;
 
-  get_block(ip->i_block[0], BLKSIZE, buf);
+  get_block(dev, ip->i_block[0], buf);
 
   cp = buf;
   dp = (DIR*) buf;
 
   // skip .
+  //printf("trying to skip %s, reclen = %d\n", dp->name, dp->rec_len);
   cp += dp->rec_len;
   dp = (DIR*)cp;
   // skip ..
   cp += dp->rec_len;
   dp = (DIR*)cp;
+  // skip lost+found
+  cp += dp->rec_len;
+  dp = (DIR*)cp;
 
+  printf("starting ls..\n");
   while (cp < buf + BLKSIZE) {
     if (dp->inode == 0) {
       return 0;
     }
 
-    ls_file(dp->inode);
-    printf("%20s\n", dp->name);
+    if (dp->name != "." && dp->name != ".." && dp->name != "lost+found") {
+      ls_file(dp->inode);
+      printf("%20s\n", dp->name);
+    }
 
     cp += dp->rec_len;
     dp = (DIR*)cp;
@@ -210,31 +229,51 @@ int ls_dir(char* path) {
 }
 
 int ls_file(int ino) {
+
   MINODE* mip = iget(dev, ino);
-  INODE* ip = &mip->INODE;
 
   // file type:
-  if      (ip->i_mode == 0x41ed) { printf("d"); }
-  else if (ip->i_mode == 0x81a4) { printf("r"); }
-  else if (ip->i_mode == 0xa1ff) { printf("l"); }
-  else                           { printf("-"); }
+  if      (mip->INODE.i_mode == 0x41ed) { printf("d"); }
+  else if (mip->INODE.i_mode == 0x81a4) { printf("r"); }
+  else if (mip->INODE.i_mode == 0xa1ff) { printf("l"); }
+  else                                  { printf("-"); }
 
-  char permissions[9] = "xwrxwrxwr";
-  for (int i = 8; i >= 0; i--) {
-    if (ip->imode & (1 << i)) { printf(permissions[i]); }
-    else { printf("-"); }
-  }
+  if (mip->INODE.i_mode & (1 << 8)) { printf("r"); }
+  else { printf("-"); }
 
-  printf("%4d", ip->i_links_count);
-  printf("%2d", ip->i_uid);
-  printf("%2d", ip->i_gid);
+  if (mip->INODE.i_mode & (1 << 7)) { printf("w"); }
+  else { printf("-"); }
 
+  if (mip->INODE.i_mode & (1 << 6)) { printf("x"); }
+  else { printf("-"); }
+
+  if (mip->INODE.i_mode & (1 << 5)) { printf("r"); }
+  else { printf("-"); }
+
+  if (mip->INODE.i_mode & (1 << 4)) { printf("w"); }
+  else { printf("-"); }
+
+  if (mip->INODE.i_mode & (1 << 3)) { printf("x"); }
+  else { printf("-"); }
+
+  if (mip->INODE.i_mode & (1 << 2)) { printf("r"); }
+  else { printf("-"); }
+
+  if (mip->INODE.i_mode & (1 << 1)) { printf("w"); }
+  else { printf("-"); }
+
+  if (mip->INODE.i_mode & (1 << 0)) { printf("x"); }
+  else { printf("-"); }
+
+  printf(" %3d", mip->INODE.i_links_count);
+  printf(" %3d", mip->INODE.i_uid);
+  printf(" %3d", mip->INODE.i_gid);
 
   char temp[32];
   ctime_r((time_t *)&mip->INODE.i_mtime, temp);   // asshole time
   temp[strlen(temp)-1] = 0;    // null terminate
-  printf("%.*s", 12, temp+4);  // format time just like ls -l
-  printf(" %6d", ip->i_size);
+  printf("\t%.*s", 12, temp+4);  // format time just like ls -l
+  printf(" %6d", mip->INODE.i_size);
 
   iput(mip);
 
@@ -292,7 +331,6 @@ int rpwd(int pino, MINODE* wd) {
 
   // at position
   printf("%s", dp->name);
-
   // TODO: Bug where %s/ or even %s / will cause it to be /ir1
 }
 
@@ -306,18 +344,18 @@ int print(MINODE *mip) {
   char *cp;
   printf("print()\n");
 
-  INODE *ip = &mip->INODE;
-  for (i=0; i < 12; i++){
+  INODE *ip = &mip->INODE;	// inode of root
+  for (i=0; i < 12; i++) {
 
-    if (ip->i_block[i]==0) {
+    if (ip->i_block[i]==0) {	// data blocks of inode
       return 0;
     }
 
-    get_block(dev, ip->i_block[i], buf);
+    get_block(dev, ip->i_block[i], buf);	// first datablock from root
     dp = (DIR *)buf; cp = buf;
 
     printf("INODE\tRECLEN\tNAMELEN\tNAME\n");
-    while(cp < buf+1024) {
+    while(cp < buf + BLKSIZE) {
       printf("%d\t%d\t%d\t%s\n", dp->inode, dp->rec_len, dp->name_len, dp->name);
       cp += dp->rec_len;
       dp = (DIR *)cp;

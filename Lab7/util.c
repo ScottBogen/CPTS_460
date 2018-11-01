@@ -48,7 +48,7 @@ void tokenize(char* pathname) {
     char* str;
     int i = 0;
 
-    printf("tokenize pathname = %s\n", pathname);
+    //printf("tokenize pathname = %s\n", pathname);
     str = strtok(pathname, "/");
 
     while (str != NULL) {
@@ -147,7 +147,6 @@ int search(MINODE *mip, char *name) {
 
 	int ino = mip->ino;
 
-
 	// 16 blocks in an inode
 	for (int i = 0; i < 16; i++) {
 		get_block(fd, mip->INODE.i_block[i], buf);
@@ -186,7 +185,7 @@ int getino(char *pathname) {
 		pathname++;
 	} else {										// relative
 		mip = iget(dev, running->cwd->ino);
-		pathname++;
+		//pathname++;
 	}
 
 	tokenize(pathname);		// name = [abc,def,hij]
