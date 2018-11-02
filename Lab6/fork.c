@@ -29,9 +29,6 @@ int fork() {
   PA = (char *)(running->pgdir[2048] & 0xFFFF0000); // parent Umode PA
   CA = (char *)(p->pgdir[2048] & 0xFFFF0000);
 
-  printf("forked CA image = %x, PA image = %x", CA, PA);
-
-
   // child
   // Umode PA
   memcpy(CA, PA, 0x100000); // copy 1MB Umode image
@@ -118,7 +115,7 @@ PROC *kfork(char *filename)
   BA = p->pgdir[2048] & 0xFFF00000;
 
   Btop = BA + 0x100000;
-  Busp = Btop - sizeof(u32);   //
+  Busp = Btop - sizeof(u32);  // stack pointer at -32
 
   cp = (char*) Busp;
   strcpy(cp, istring);  // put "init start" at high end address
