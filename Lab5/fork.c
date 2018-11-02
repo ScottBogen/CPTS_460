@@ -4,12 +4,10 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
-
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ********************************************************************/
@@ -57,11 +55,9 @@ PROC *kfork(char *filename)
   //-------------------------------------------------
   //  14 13 12 11 10 9  8  7  6  5  4   3    2   1
   /********************
-
   // to go Umode, must set new PROC's Umode cpsr to Umode=10000
   // this was done in ts.s dring init the mode stacks ==>
   // user mode's cspr was set to IF=00, mode=10000
-
   ***********************/
   // must load filename to Umode image area at 7MB+(pid-1)*1MB
   addr = (char *)(0x800000 + (p->pid - 1)*0x100000);
@@ -75,7 +71,7 @@ PROC *kfork(char *filename)
 
   }
 
-  
+
   if (strcmp(filename, "u2")==0){
      usize1 = (int)&_binary_u2_size;
      cp = &_binary_u2_start;

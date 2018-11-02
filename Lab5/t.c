@@ -40,7 +40,6 @@ extern int  _binary_u4_size;
 
 char* RAMdisk = (char*) 0x4000000; // global at 4MB
 
-
 char *tab = "0123456789ABCDEF";
 int BASE;
 int color;
@@ -319,13 +318,13 @@ int loader(char* filename, PROC* p) {
     ip = (INODE*)buf1 + position;
 
 
-    // found u1
+    // found u1, u2, u3, or u4
     if (str[i] == '\0') {
       printf("Found %s at ino = %d, ip is set, returning to main\n", str, ino);
       printf("Testing inode: \n");
       printf("size = %d\n", ip->i_size);
       printf("mode = %x\n", ip->i_mode);
-      printf("blocks = %d\n", ip->i_blocks);
+      printf("process %d pgtable at %x\n", p->pid, p->pgdir);
 
       /*
       All the processes run in the same virtual address space of [2 GB to 2 GB + 1 MB] but
@@ -333,12 +332,17 @@ int loader(char* filename, PROC* p) {
       protected by the MMU hardware
       */
 
-      for (i = 0; i < 4; i++) {
-        kgetc();
-        get_block((u16)ip->i_block[i], 0x8000000 + BLK*i);
-        // write to 0x8000000 + BLK*i;
-        printf("Wrote block %d to memory\n", (u16)ip->i_block[i]);
+
+      int location = 0x800000 + (p->pid-1)*0x100000;
+      for (i = 0; i < 12; i++) {
+        if (ip->i_block[i] != 0) {
+          get_block(ip->i_block[i], buf2);
+          memcpy(location, buf2, BLKSIZE); // copy block
+          location += BLKSIZE; // move onto the next block
+        }
       }
+
+      printf("Wrote block %d to memory\n";
 
       // return to old ip state (for next usermode image)
       return 1;
@@ -419,6 +423,8 @@ int main()
 
   // memcpy(cq, cp, size_disk);
 
+   kgetc();
+
    printf("disk start = %x\n", RAMdisk);
    printf("blocks_per_inode = %d\n", blocks_per_inode);
    printf("read block#1 (SP)\n");
@@ -436,29 +442,34 @@ int main()
    get_block(iblk, buf1);
    ip = (INODE*) buf1 + 1;
 
-   kfork("u1");
-   loader("/bin/u1", running);
+   PROC* tmp;
+
+   tmp = kfork("u1");
+   printf("= Loading p#%d=\n", tmp->pid);
+   loader("/bin/u1", tmp);
 
    get_block(iblk, buf1);
    ip = (INODE*) buf1 + 1;
 
-   //printdirs(cp,dp,buf1);
+   tmp = kfork("u2");
+   printf("= Loading p#%d=\n", tmp->pid);
+   loader("/bin/u2", tmp);
+
+   get_block(iblk, buf1);
+   ip = (INODE*) buf1 + 1;
+
+   tmp = kfork("u3");
+   printf("= Loading p#%d=\n", tmp->pid);
+   loader("/bin/u3", tmp);
+
+   get_block(iblk, buf1);
+   ip = (INODE*) buf1 + 1;
+
+   tmp = kfork("u4");
+   printf("= Loading p#%d=\n", tmp->pid);
+   loader("/bin/u4", tmp);
 
    ///////////////////////////////////////////////////////////////////////////
-   kfork("u2");
-   loader("/bin/u2", running);
-
-   get_block(iblk, buf1);
-   ip = (INODE*) buf1 + 1;
-
-   kfork("u3");
-   loader("/bin/u3", running);
-
-   get_block(iblk, buf1);
-   ip = (INODE*) buf1 + 1;
-
-   kfork("u4");
-   loader("/bin/u4", running);
 
    unlock();
    /********
@@ -482,4 +493,5 @@ int main()
    kprintf("\n");
 
    tswitch();  // switch to run P1 ==> never return again
+
 }

@@ -22,6 +22,8 @@ Consult Chapter 8 of text for reason WHY.
 #define enterCR  ps=int_off()
 #define exitCR   int_on(ps)
 
+#include "sdc.h"
+
 extern PROC *readyQueue;
 extern int how;  // BUSYWAIT or NOBUSYWAIT
 
@@ -62,7 +64,7 @@ void V(struct semaphore *s)
   int_on(ps);
 }
 
-#include "sdc.h"
+//#include "sdc.h"
 u32 base;  //SDC base addres in I/O map
 
 int delay() // delay loop after issuing a SDC command: optional
@@ -106,7 +108,7 @@ int sdc_handler()
         up += 16;
         rxcount -= 64;
         rxbuf += 64;
-	status = *(u32 *)(base + STATUS); // read status to clear Rx interrupt
+	      status = *(u32 *)(base + STATUS); // read status to clear Rx interrupt
      }
      color = oldcolor;
      if (rxcount == 0){
@@ -151,17 +153,15 @@ int sdc_handler()
   // printf("SDC interrupt handler done\n");
 }
 
-int verifyExt2()
-{
+int verifyExt2() {
   // verify SDC is an EXT2 FS: set globals bmap, imap and iblk
   SUPER *sp;
   GD    *gp;
 
   printf("read SUPER block: ");
   getblk(1, buf);
-  sp = (SUPER *)&buf[0];
-  printf("magic=%x nblock=%d ninodes=%d\n", sp->s_magic, sp->s_blocks_count,
-        sp->s_inodes_count);
+  sp = (SUPER *)buf;
+  printf("magic=%x nblock=%d ninodes=%d\n", sp->s_magic, sp->s_blocks_count, sp->s_inodes_count);
 
   printf("read GROUP DESCRIPTOR 0: ");
   getblk(2, buf);

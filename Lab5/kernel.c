@@ -107,19 +107,16 @@ int kernel_init()
       // REASON: AP=01 allows access in privileged mode, NOT in Umode. =>
       // while in Umode, one of the Desc or Domain AP must be set to 11.
 
-
-
     //mtable[2048]=(0x700000 + (i-1)*0x100000)|0x43E; //AP=11,DO=1,CB=11
     mtable += 4096;
   }
-  /*
+
   // verify some of the pgdir contents
+  //printf("Verifying pgdir integrity...\n");
   mtable = (int *)0x700000;   // mtables begin at 7MB
   for (i=0; i<4; i++){
-     printf("mtable[%d][2048] = %x\n", i, (u32)mtable[2048]);
      mtable += 4096;
   }
-  */
 }
 
 int scheduler()

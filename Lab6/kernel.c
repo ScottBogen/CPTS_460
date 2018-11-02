@@ -10,9 +10,8 @@ char *pname[NPROC]={"sun", "mercury", "venus", "earth", "mars", "jupiter",
                      "saturn","uranus","neptune"};
 
 u32 *MTABLE = (u32 *)0x4000;
-int init()
-{
-  int i, j; 
+int init() {
+  int i, j;
   PROC *p; char *cp;
   int *MTABLE, *mtable;
   int paddr;
@@ -61,7 +60,7 @@ int init()
     for (j=2049; j<4096; j++){ // zero out high 2048 entries
       mtable[j] = 0;
     }
-    mtable[2048]=(0x800000 + (i-1)*0x100000)|0xC12; // entry 2048 OR in 0xC12  
+    mtable[2048]=(0x800000 + (i-1)*0x100000)|0xC12; // entry 2048 OR in 0xC12
     mtable += 4096;
   }
 }
@@ -84,7 +83,7 @@ int scheduler()
   if (pid==3) color=CYAN;
   if (pid==4) color=YELLOW;
   if (pid==5) color=BLUE;
-  if (pid==6) color=PURPLE;   
+  if (pid==6) color=PURPLE;
   if (pid==7) color=RED;
   // must switch to new running's pgdir; possibly need also flush TLB
   if (running != old){
@@ -92,7 +91,7 @@ int scheduler()
     printf("pgdir[2048] = %x\n", running->pgdir[2048]);
     switchPgdir((u32)running->pgdir);
   }
-}  
+}
 
 int do_tswitch()
 {
@@ -157,7 +156,7 @@ int body()
     if (pid==3) color=CYAN;
     if (pid==4) color=PURPLE;
     if (pid==5) color=YELLOW;
-    if (pid==6) color=BLUE;   
+    if (pid==6) color=BLUE;
     if (pid==7) color=WHITE;
 
     printf("----------------------------------------------\n");
@@ -165,17 +164,17 @@ int body()
     printQ(readyQueue);
     printSleepList(sleepList);
     printf("----------------------------------------------\n");
-    kprintf("proc %d in body(), parent = %d, input a char [s|f|q|z|a|w|u] : ", 
+    kprintf("proc %d in body(), parent = %d, input a char [s|f|q|z|a|w|u] : ",
 	    running->pid, running->ppid);
     kprintf("pidaddr=%x\n", &pid);
     kgetline(line);
     c = line[0];
- 
+
     switch(c){
       case 's': do_tswitch(); break;
       case 'f': do_kfork();   break;
       case 'q': do_exit();    break;
- 
+
       case 'z': do_sleep();   break;
       case 'a': do_wakeup();  break;
       case 'w': do_wait();    break;
@@ -188,7 +187,7 @@ int body()
 int do_goUmode()
 {
   char line[32];
-  int i; 
+  int i;
   int *usp = running->usp;
 
   kprintf("%d goUmode: usp=%x\n", running->pid, usp);
@@ -196,8 +195,8 @@ int do_goUmode()
     kprintf("%x ", usp[i]);
   }
   kprintf("enter a line ");
-  kgetline(line); 
-  goUmode(); 
+  kgetline(line);
+  goUmode();
 }
 
 int kgetpid()
@@ -214,7 +213,7 @@ int kgetppid()
 char *pstatus[]={"FREE   ","READY  ","SLEEP  ","BLOCK  ","ZOMBIE ", " RUN  "};
 int kps()
 {
-  int i; PROC *p; 
+  int i; PROC *p;
   for (i=0; i<NPROC; i++){
      p = &proc[i];
      kprintf("proc[%d]: pid=%d ppid=%d", i, p->pid, p->ppid);
@@ -227,7 +226,7 @@ int kps()
 }
 
 int kchname(char *s)
-{ 
+{
   kprintf("kchname: name=%s\n", s);
   strcpy(running->name, s);
   return 123;
@@ -242,7 +241,7 @@ int kkfork()
 
 int kkwait(int *status)
 {
-    int pid, e; 
+    int pid, e;
     pid = kwait(&e);
     printf("%d write %x to status at %x in Umode\n", running->pid, e, status);
     *status = e;
