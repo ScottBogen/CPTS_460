@@ -47,29 +47,35 @@ int main(int argc, char *argv[ ]) {
   while (1) {
     // 5.  printf("login"); gets(name);
     //     printf("pass"); gets(pass);
-    printf("login: "); gets(name);
-    printf("password: "); gets(pass);
-    printf("\n");
+    prints("login:\n\r"); gets(name);
+    prints("password:\n\r"); gets(pass);
+    prints("%s\n\r");
 
+    prints("reading from file...\n\r");
     n = read(passfd, buf, 4096);
+    printf("n=%d\n\r", n);
 
     if (n <= 0) {
-      printf("ERRNO [1]: no passwords found.\n");
+      prints("ERRNO [1]: no passwords found.\n");
       close(passfd); close(in); close(out); close(err);
       return -1;
     }
 
     int toki = 0;
-
-    strtok(buf, token, '\n', toki++);  // token = username
-    printf("token=%s\n", token);
+    char token[256];
+    prints("entering strtok..\n\r");
+    int result = strtok(buf, token, 10, toki++);  // token = username
+    if (!result) { printf("nothing found!\n\r"); return -1; }
+    printf("token=%s\n\r", token);
 
     // for each line in /etc/passwd do:
     while (token) {
-      if (!strcmp(token,name)) {
-        char token_pass[16];
+      char token_name[32];
+      strtok(token, token_name, ':', 0);
+      if (!strcmp(token_name,name)) {
+        char token_pass[32];
         strtok(token, token_pass, ':', 1);
-
+        printf("pass = %s\n\r", token_pass);
         if (!strcmp(token_pass, pass)) {
           //username:password:uid:gid:alias mode:directory:execcmd
           char uid[16];
@@ -93,19 +99,25 @@ int main(int argc, char *argv[ ]) {
           //       close opened /etc/passwd file
           //       exec to program in user account
 
-          printf("uid=%d, gid=%d, alias=%s, mode=%s, dir=%s, cmd=%s\n",
+          printf("uid=%s, gid=%s, alias=%s, mode=%s, dir=%s, cmd=%s\n",
                   uid, gid, alias, mode, directory, execcmd);
 
-          chuid(uid, gid);        //uid, gid
+          chuid(atoi(uid), atoi(gid));        //uid, gid
           chdir(directory);
 
-          close(passfd); close(1); close(2); close(3);
+          close(passfd); //close(1); close(2); close(3);
+
+          printf("Welcome %s. Taking you to %s\n\r", alias, directory);
           exec(execcmd);
-          break;
+          return 1;
         }
       }
 
-      strtok(buf, token, '\n', toki++);
+      strtok(buf, token, 10, toki++);
+      if (toki>5) {
+        printf("login failed\n\r");
+        return -1;
+      }
     }
   }
   printf("exit\n");

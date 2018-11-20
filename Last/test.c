@@ -1,6 +1,5 @@
 /********** test.c file *************/
 #include "ucode.c"
-#include <stdlib.h>
 
 char buf[1024];
 

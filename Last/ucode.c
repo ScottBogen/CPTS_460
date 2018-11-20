@@ -31,21 +31,21 @@ int nk;
 #define EOF -1
 extern char cr;
 
-//void putchar(const char c){ }
+//void putchar(const char c){ };
 
 // example call: strtok("hello world i am scott", ' ', 3);
-void strtok(char* str, char delim, int occurrences, char* outstr) {
-  int index = 0;
+int strtok(char* str, char* outstr, char delim, int occurrences) {
+  int index = 0 ;
   int length = 0, found = 0;
-  if (!str)   { printf("ERR: no input String\n"); return; }
-  if (!delim) { printf("ERR: no delim\n");        return; }
+  if (!str)   { printf("ERR: no input String\n\r"); return 0; }
+  if (!delim) { printf("ERR: no delim\n\r");        return 0; }
 
-  while(outstr[index]) {
-    outstr[index++] = 0;
+  while(outstr[index] != 0) {
+    outstr[index] = 0;
+    index++;
   }
   index = 0;
 
-  //
   while(str[index] && occurrences > 0) {
     if (str[index] == delim) {
       occurrences--;
@@ -54,12 +54,16 @@ void strtok(char* str, char delim, int occurrences, char* outstr) {
   }
 
   if (!str[index]) {
-      printf("ERR: too large of a delim for str size\n");
-      return;
+      printf("ERR: too large of a delim for str size: str=%s, delim=%c, occ=%d\n\r", str, delim, occurrences);
+      return 0;
   }
 
-  char name[128];
-  int j = 0;
+  char name[256];
+  int j;
+  for (j = 0; j < 256; j++) {
+    name[j] = 0;
+  }
+  j = 0;
 
   while (str[index] && str[index] != delim) {
     name[j] = str[index];
@@ -76,6 +80,7 @@ void strtok(char* str, char delim, int occurrences, char* outstr) {
     outstr[j] = cp[j];
     j++;
   }
+  return 1;
 }
 
 
