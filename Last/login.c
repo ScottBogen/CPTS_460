@@ -51,9 +51,7 @@ int main(int argc, char *argv[ ]) {
     prints("password:\n\r"); gets(pass);
     prints("%s\n\r");
 
-    prints("reading from file...\n\r");
     n = read(passfd, buf, 4096);
-    printf("n=%d\n\r", n);
 
     if (n <= 0) {
       prints("ERRNO [1]: no passwords found.\n");
@@ -66,7 +64,6 @@ int main(int argc, char *argv[ ]) {
     prints("entering strtok..\n\r");
     int result = strtok(buf, token, 10, toki++);  // token = username
     if (!result) { printf("nothing found!\n\r"); return -1; }
-    printf("token=%s\n\r", token);
 
     // for each line in /etc/passwd do:
     while (token) {
@@ -114,7 +111,7 @@ int main(int argc, char *argv[ ]) {
       }
 
       strtok(buf, token, 10, toki++);
-      if (toki>5) {
+      if (toki>5) { // hard coded for now
         printf("login failed\n\r");
         return -1;
       }

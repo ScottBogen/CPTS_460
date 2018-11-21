@@ -6,6 +6,8 @@ int console;
 int s1;
 int s0;
 
+int in1, out1, in2, out2, in3, out3;
+
 int parent() {
   int pid, status;
   while(1) {
@@ -13,32 +15,40 @@ int parent() {
     pid = wait(&status);
 
     if (pid==console) {
-      prints("INIT: fork a new console login\n");
       console = fork();
       if (console){
         continue;
       }
       else {
+        char* line = "Login on port: console\n\r";
+        write(out1, line, 24);
+        close(out1);
         exec("login /dev/tty0");
       }
     }
+
     else if (pid == s1) {
-      prints("INIT: fork a new TTYS1 login\n");
       s1 = fork();
       if (s1){
         continue;
       }
       else {
+        char* line = "Login on port: ttyS1\n\r";
+        write(out2, line, 22);
+        close(out2);
         exec("login /dev/ttyS1");
       }
     }
+
     else if (pid == s0) {
-      prints("INIT: fork a new TTYS0 login\n");
       s0 = fork();
       if (s0){
         continue;
       }
       else {
+        char* line = "Login on port: ttyS0\n\r";
+        write(out3, line, 22);
+        close(out3);
         exec("login /dev/ttyS0");
       }
     }
@@ -48,7 +58,6 @@ int parent() {
 }
 
 int main(int argc, char *argv[ ]) {
-  int in1, out1, in2, out2, in3, out3;
   in1 = open("/dev/tty0", O_RDONLY);   // file descriptor 0
   out1 = open("/dev/tty0", O_WRONLY);  // for display to console
   in2 = open("/dev/ttyS1", O_RDONLY);
@@ -56,7 +65,6 @@ int main(int argc, char *argv[ ]) {
   in3 = open("/dev/ttyS0", O_RDONLY);
   out3 = open("/dev/ttyS0", O_WRONLY);
 
-  prints("INIT: fork a login proc on console\n");
   console = fork();
 
   if (console) {    // parent
@@ -67,14 +75,23 @@ int main(int argc, char *argv[ ]) {
         parent();
       }
       else {
+        char* line = "Login on port: ttyS0\n\r";
+        write(out3, line, 22);
+        close(out3);
         exec("login /dev/ttyS0");
       }
     }
     else {
+      char* line = "Login on port: ttyS1\n\r";
+      write(out2, line, 22);
+      close(out2);
       exec("login /dev/ttyS1");
     }
   }
   else {            // child: exec to login on tty0
+    char* line = "Login on port: console\n\r";
+    write(out1, line, 24);
+    close(out1);
     exec("login /dev/tty0");
   }
 }
