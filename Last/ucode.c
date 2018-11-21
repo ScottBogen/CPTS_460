@@ -33,7 +33,7 @@ extern char cr;
 
 //void putchar(const char c){ };
 
-// example call: strtok("hello world i am scott", ' ', 3);
+// example call: strtok("hello world i am scott", outstr, ' ', 3);
 int strtok(char* str, char* outstr, char delim, int occurrences) {
   int index = 0 ;
   int length = 0, found = 0;

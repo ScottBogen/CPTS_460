@@ -106,7 +106,7 @@ void rpi(int x)
    rpi((int)x/10);
    mputc(c);
 }
-  
+
 void printi(int x)
 {
     if (x==0){
@@ -150,7 +150,7 @@ void rpx(u32 x)
 }
 
 void printx(u32 x)
-{  
+{
   prints("0x");
    if (x==0){
       prints("0 ");
@@ -178,7 +178,7 @@ int printk(char *fmt, ...)
 
   while (*cp){
     if (*cp != '%'){
-       mputc(*cp); 
+       mputc(*cp);
        cp++;
        continue;
     }
