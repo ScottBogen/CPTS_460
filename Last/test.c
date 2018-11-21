@@ -9,9 +9,11 @@ int main(int argc, char *argv[ ]) {
   int fd, n;
   int pid = getpid();
 
-  printf("SCOTT SCOTT BOY running test program\n", pid);
+  getcwd(buf);
+  printf("cwd = %s\n", buf);
 
-  printf("argc = %d\n", argc)
+
+  printf("argc = %d\n", argc);
   for (i=0; i<argc; i++) {
     printf("argv[%d] = %s\n", i, argv[i]);
   }
