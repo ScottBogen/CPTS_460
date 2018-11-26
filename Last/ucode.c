@@ -37,8 +37,8 @@ void putchar(const char c){ };
 int strtok(char* str, char* outstr, char delim, int occurrences) {
   int index = 0 ;
   int length = 0, found = 0;
-  if (!str)   { printf("ERR: no input String\n\r"); return 0; }
-  if (!delim) { printf("ERR: no delim\n\r");        return 0; }
+  if (!str)   {  return 0; }
+  if (!delim) {  return 0; }
 
   while(outstr[index] != 0) {
     outstr[index] = 0;
@@ -54,7 +54,6 @@ int strtok(char* str, char* outstr, char delim, int occurrences) {
   }
 
   if (!str[index]) {
-      printf("ERR: too large of a delim for str size: str=%s, delim=%c, occ=%d\n\r", str, delim, occurrences);
       return 0;
   }
 
