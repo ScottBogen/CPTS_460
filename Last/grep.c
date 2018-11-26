@@ -56,7 +56,7 @@ int main(int argc, char *argv[ ]) {
     n = read(in, buf, 1024);      // read in from buf
     if (n < 1) { break; }         // leave if no more bytes
 
-    //printf("buf = %s\n\r", buf);
+    printf("buf = %s\n\r", buf);
 
     i = j = k = 0;
     while (strtok(buf, line, '\n', i++)) {    // if we can tokenize

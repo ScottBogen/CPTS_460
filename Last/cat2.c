@@ -1,14 +1,14 @@
 #include "ucode.c"
 
 char buf[1024];
-char buf2[1024];
-char string[128];
+char buf2[4096];
+char line[128];
 
 int main(int argc, char *argv[ ]) {
 
   int n;
   int in, out;
-  int i, j;
+  int i, j, k;
 
   // STDIN
   if (argc == 1) {
@@ -21,48 +21,17 @@ int main(int argc, char *argv[ ]) {
     out = 1;
   }
 
-
-  i = j = 0;
-  char last;
-
   // main loop
   while(1) {
     n = read(in, buf, 1024);      // read from input
     if (n < 1) { break; }         // if no data, break
 
-    // (almost definitely) user is entering from keyboard
-    if (n == 1) {
-      prints(buf);              // user can see the buttons they've pressed
-      buf2[i++] = buf[0];       // add char to buf2
-
-
-      // upon pressing enter:
-      if (buf[0] == 13) {
-        if (last != 10 && last != 0 && last != 13) {
-          buf2[i++] = '\0';
-          prints("\n\r");
-          write(out, buf2, i);
-          prints("\n\r");
-          break;
-        }
-      }
-      last = buf[0];
+    i = j = k = 0;
+    while (strtok(buf, line, '\n', i++)) {    // if we can tokenize
+      while (line[j++]);
+      write(out, line, j);
     }
 
-
-    // reading from file
-    else {
-      i = j = 0;
-      while (strtok(buf, string, '\n', i++)) {    // if we can tokenize
-        while (string[j++]);
-        write(out, string, j);
-        prints("\n\r");
-      }
-    }
-
-    j = 0;
-    memset(buf, 0, 1024);
-    memset(string, 0, 128);
   }
 
   /*
