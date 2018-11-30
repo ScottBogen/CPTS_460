@@ -39,29 +39,39 @@ int main(int argc, char *argv[ ]) {
 
   int stdin = 0;
 
+  char args[10][32];
+
+  i = 0;
   while (1) {
-    prints("------SCOTT SHELL------\n\r");
     printf("\n\r scsh #%d $ ", getpid());
     gets(uinput);
 
     printf("\n\r your input: %s\n\r", uinput);
 
+    //strtok(uinput, args[0], '|', 0);
+    //printf("args[0] = %s\n\r", args[0]);
+    //strtok(uinput, args[1], '|', 1);
+    //rintf("args[0] = %s\n\r", args[1]);
 
+
+    while(strtok(uinput, args[i], '|', i)) {
+      printf("args[%d] === %s\n\r", i, args[i]);
+      i++;
+    }
+
+    i = 0;
+    // TODO: forked process isn't killed if 
     child = fork();
-    //printf("child = %d\n\r", child);
     if (child) {
-      wait(&status);
+      wait(&status);        // wait for child (still executing) to die
     }
     else {
-      // funny fork happens first, it goes FUNNY -> SCOTSH
-      //printf("SH funny forked child %d for exec\n\r", getpid());
-      //pause(1);
-      exec("cat f1");
+      if (args[0]) {
+        exec(args[0]);
+      }
     }
-    wait(&status);
+    wait(&status);    // wait for child (that just started executing) to die
 
-    //printf("Now we are back at shell again, pid = %d, time to loop\n\r", getpid());
-    // when I take away while(1), it will print the above line after SCOTSH is called.
     memset(uinput, 0, 128);
   }
 }
@@ -83,4 +93,4 @@ int parent() {
     }
   }
 }
-*/ 
+*/
