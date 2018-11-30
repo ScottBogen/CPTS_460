@@ -9,21 +9,72 @@ int main(int argc, char *argv[ ]) {
   int fd, n;
   int pid = getpid();
 
-  getcwd(buf);
-  printf("cwd = %s\n", buf);
+  char* line1 = "cat f1";
+  char* line2 = "more";
 
-  printf("argc = %d\n", argc);
-  for (i=0; i<argc; i++) {
-    printf("argv[%d] = %s\n", i, argv[i]);
+  prints("-------------\n\r");
+  prints("Creating pipe\n\r");
+  char lines[2];
+  lines[0] = line1;
+  lines[1] = line2;
+  int pd = pipe(line1);
+  int pd2 = pipe(line2);
+
+  printf("pd = %d\n\r", pd);
+  printf("pd = %d\n\r", pd2);
+
+
+  // calling read(fd, buf, nbytes):
+    // returns read_pipe(fd, buf, nbytes);
+
+  // calling read(fd, buf, nbytes):
+    // returns write_pipe(fd, buf, nbytes);
+
+  // 8.12.5.4
+  // read/write pipes are implemented in the pipe mechanism in the EOS kernel
+  // 8.15.3 - the sh program
+  /*
+      If a line contains IO redirections, the child sh handles IO
+      redirections first. then it uses exec to change image to cmd file.
+
+      If a cmd line contains a pipe symbol, the child sh handles
+      the pipe by doing the following do_pipe algorithm:
+
+
+      int pid, pd[2];
+      pipe(pd);     // create a pipe: pd[0] = READ, pd[1] = WRITE
+      pid = fork();         // fork a child to share the pipe
+      if (pid) {            //parent: as pipe READER
+        close(pd[1]);       // close pipe WRITE end
+        dup2(pd[0], 0);     // redirect stdin to pipe READ end
+        exec(cmd2);
+      }
+      else {                // child: as pipe WRITER
+        close(pd[0]);       // close pipe READ end
+        dup2(pd[1], 1);     // redirect stdout to pipe WRITE end
+        exec(cmd1);
+      }
+
+
+  */
+
+
+
+
+
+  /*
+  int left = fork();
+  int right = fork();
+
+  if (!left) {
+    exec(line1);
   }
-
-  fd = open("f1", O_RDONLY);
-  printf("fd = %d\n", fd);
-  if (fd < 0) {
-    exit(1);
+  else if (right) {
+    exec(line2);
   }
-  n = read(fd, buf, 1024);
-  printf("n=%d buf=%s\n", n, buf);
+  */
 
-  printf("exit\n");
+
+
+
 }

@@ -1,0 +1,4 @@
+rm wanix
+rm sdimage
+cp kc/wanix wanix
+cp kc/sdimage sdimage
