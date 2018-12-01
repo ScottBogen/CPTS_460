@@ -23,25 +23,29 @@ int main(int argc, char *argv[ ]) {
   int stdin = 0;
   char args[10][32];
 
-  i = 0;
   while (1) {
+
+    for (i = 0; i < 10; i++) {
+      memset(args[i], 0, 32);
+    }
+    i = 0;
+
     printf("\n\r scsh #%d $ ", getpid());
     gets(uinput);
 
-
     printf("\n\r your input: %s\n\r", uinput);
 
-
     while(strtok(uinput, args[i], '|', i)) {
-      //printf("args[%d] === %s\n\r", i, args[i]);
       i++;
     }
+
     int count = i;
     i--;
     printf("count = %d\n\r", count);
 
     char* cp;
     int len;
+
     // remove spaces from the start
     for (; i >= 0; i--) {
       cp = args[i];
@@ -49,11 +53,24 @@ int main(int argc, char *argv[ ]) {
       while(*cp == ' ') { cp++; }
       strcpy(args[i], cp);
       printf("args[%d] = %s\n\r", i, args[i]);
+
+      // look for IO redirections while we're here
+      int j = 0;
+      while (args[i][j]) {
+        if (args[i][j] == '>') {
+          printf("IO REDIRECTION FOUND AT ARG %s\n\r", args[i]);
+          break;
+          return -1;
+        }
+        j++;
+      }
+
     }
 
     i = 0;
-    // TODO: forked process isn't killed if
+    // TODO: forked process isn't killed if there are typos
     child = fork();
+
     if (child) {
       wait(&status);        // wait for child (still executing) to die
     }
@@ -61,27 +78,22 @@ int main(int argc, char *argv[ ]) {
 
       if (count == 2) {
         prints("CREATING PIPE\n\r");
-        do_pipe(args[0], args[1]);
-        //wait(&status);
+        do_pipe(args[0], args[1]);      // pipes are handled recursively right to left
+                                        // try calling it like do_pipe(args[max])
       }
 
       else if (count == 1) {
         exec(args[0]);
       }
-
     }
-    //wait(&status);    // wait for child (that just started executing) to die
-    memset(uinput, 0, 128);
 
-    //for (i = 0; i < 10; i++) {
-    //  memset(args[i], 0, sizeof(int) * 32);
-    //}
+    memset(uinput, 0, 128);
     i = 0;
 
   }
 }
 
-int do_pipe(char* cmd1, char* cmd2){
+int do_pipe(char* cmd1, char* cmd2){          // consider changing to do_pipe(char* args[max]) and going backwards
   int pid, pd[2];
   int status;
   pipe(pd);     // create a pipe: pd[0] = READ, pd[1] = WRITE

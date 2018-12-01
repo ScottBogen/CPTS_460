@@ -36,7 +36,7 @@ int main(int argc, char *argv[ ]) {
     if (n < 1) { break; }         // if no data, break
     string[i] = buf[0];
 
-    if (!in) { prints(buf); }
+    if (!in) { write(outtty, buf, 1); }
 
     if (string[i] == 10) {     // 10 == '\n';
       string[++i] = '\r';        // 13 == '\r';
