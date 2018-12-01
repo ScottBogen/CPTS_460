@@ -21,7 +21,6 @@ int main(int argc, char *argv[ ]) {
     out = 1;
   }
 
-
   i = j = 0;
   char last;
 
@@ -32,6 +31,7 @@ int main(int argc, char *argv[ ]) {
 
     // (almost definitely) user is entering from keyboard
     if (n == 1) {
+      //prints("cat from STDIN\n\r");
       prints(buf);              // user can see the buttons they've pressed
       buf2[i++] = buf[0];       // add char to buf2
 
@@ -52,6 +52,7 @@ int main(int argc, char *argv[ ]) {
 
     // reading from file
     else {
+      //prints("cat from FILE\n\r");
       i = j = 0;
       while (strtok(buf, string, '\n', i++)) {    // if we can tokenize
         while (string[j++]);

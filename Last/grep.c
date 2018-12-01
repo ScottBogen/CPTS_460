@@ -11,6 +11,7 @@ int main(int argc, char *argv[ ]) {
   int in, out;
   char* pattern;
   char line[128];
+  char c;
 
   if (argc < 2) {
     prints("Not enough args\n\r");
@@ -52,34 +53,42 @@ int main(int argc, char *argv[ ]) {
   //prints("Entering main loop...\n\r");
 
   // main loop
+
+  i = j = k = 0;
+  int to_print = 0;
   while (1) {
-    n = read(in, buf, 1024);      // read in from buf
+    n = read(in, buf, 1);      // read in from buf
     if (n < 1) { break; }         // leave if no more bytes
 
-    printf("buf = %s\n\r", buf);
+    //printf("buf = %s\n\r", buf);
 
-    i = j = k = 0;
-    while (strtok(buf, line, '\n', i++)) {    // if we can tokenize
-      //printf("LINE = %s\n\r", line);
-      while (line[j]) {
-        if (line[j] == pattern[k]) {
-          k++;
-          if (k == length) {
-            //write(out, line, 128);
-            prints(line);
-            prints("\n\r");
-            continue;
-          }
-        }
-        else {
-          k = 0;
-        }
-        j++;
-      }
+    line[i] = buf[0];
+
+
+    if (buf[0] == 10) {
+      prints("\r");
+      line[++i] = 13;
       j = 0;
+      if (to_print) {
+        write(out, line, 128);
+      }
+      to_print = 0;
+      i = 0;
       memset(line, 0, 128);
     }
-  }
 
+    else {
+      if (line[i] == pattern[j]) {
+        j++;
+        if (j == length) {
+          to_print = 1;
+        }
+      }
+      else {
+        j = 0;
+      }
+      i++;
+    }
+  }
   close(in); close(out);
 }

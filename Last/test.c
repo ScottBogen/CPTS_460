@@ -8,20 +8,27 @@ int main(int argc, char *argv[ ]) {
   int i;
   int fd, n;
   int pid = getpid();
+  int status;
 
   char* line1 = "cat f1";
   char* line2 = "more";
 
-  prints("-------------\n\r");
-  prints("Creating pipe\n\r");
-  char lines[2];
-  lines[0] = line1;
-  lines[1] = line2;
-  int pd = pipe(line1);
-  int pd2 = pipe(line2);
+  char* pd[2] = {line1, line2};
 
-  printf("pd = %d\n\r", pd);
-  printf("pd = %d\n\r", pd2);
+  pid = fork();
+  if (pid) {
+    wait(&status);
+  }
+  else {
+    pipe(pd);
+  }
+
+
+  write_pipe(1, line1, 1024);
+  read_pipe(0, buf, 1024);
+
+  printf("buf\n\r", buf);
+
 
 
   // calling read(fd, buf, nbytes):
