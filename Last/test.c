@@ -5,29 +5,48 @@ char buf[1024];
 
 int main(int argc, char *argv[ ]) {
 
-  int i;
-  int fd, n;
-  int pid = getpid();
   int status;
+  char* cmd = "cat f1";
+  char* direct = "cat f1 > outfile";
+  char* filename = "output";
+  int fd = open(filename, O_WRONLY|O_CREAT|O_APPEND);
+  //printf("fd = %d\n\r", fd);
+  //close(fd);
+  //fd = open(filename, 1);
+  //printf("fd = %d\n\r", fd);
 
-  char* line1 = "cat f1";
-  char* line2 = "more";
+  // file opened or created
 
-  char* pd[2] = {line1, line2};
+  char command[32];
+  memset(command, 0, 32);
 
-  pid = fork();
-  if (pid) {
-    wait(&status);
+  strtok(direct, command, '>', 0);
+
+
+  printf("command = %spenis\n\r", command);
+
+  int child = fork();
+
+  if (!child) {
+    close(0);
+    dup2(fd ,1);
+    exec(cmd);
   }
   else {
-    pipe(pd);
+    wait(&status);
   }
 
 
-  write_pipe(1, line1, 1024);
-  read_pipe(0, buf, 1024);
+  /*
+  else {                // child: as pipe WRITER
+    close(pd[0]);       // close pipe READ end
+    dup2(pd[1], 1);     // redirect stdout to pipe WRITE end
+    exec(cmd1);
+  }
+  */
 
-  printf("buf\n\r", buf);
+
+
 
 
 
@@ -64,24 +83,5 @@ int main(int argc, char *argv[ ]) {
 
 
   */
-
-
-
-
-
-  /*
-  int left = fork();
-  int right = fork();
-
-  if (!left) {
-    exec(line1);
-  }
-  else if (right) {
-    exec(line2);
-  }
-  */
-
-
-
 
 }

@@ -1,4 +1,12 @@
 /********** test.c file *************/
+
+
+
+
+// TODO: "grep f1 print" will not print newlines anymore, fix it 
+
+
+
 #include "ucode.c"
 
 char buf[1024];
