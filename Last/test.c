@@ -13,7 +13,7 @@ int main(int argc, char *argv[ ]) {
   //printf("fd = %d\n\r", fd);
   //close(fd);
   //fd = open(filename, 1);
-  //printf("fd = %d\n\r", fd);
+  printf("fd = %d\n\r", fd);
 
   // file opened or created
 
@@ -23,19 +23,20 @@ int main(int argc, char *argv[ ]) {
   strtok(direct, command, '>', 0);
 
 
-  printf("command = %spenis\n\r", command);
+  printf("command = %s\n\r", command);
 
   int child = fork();
 
   if (!child) {
-    close(0);
-    dup2(fd ,1);
+    //close(0);
+    dup2(fd, 1);
     exec(cmd);
   }
   else {
     wait(&status);
   }
 
+  close(fd);
 
   /*
   else {                // child: as pipe WRITER

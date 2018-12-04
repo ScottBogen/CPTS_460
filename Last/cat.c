@@ -15,16 +15,19 @@ int main(int argc, char *argv[ ]) {
 
   int outtty = open(tty, O_WRONLY);
 
+  //close(0);
+  //close(1);
+
 
   // STDIN
   if (argc == 1) {
-    in = 0;
-    out = 1;
+    in = 0; //open(0, O_RDONLY);
+    out = 1; //open(1, O_WRONLY);
   }
   // FILE
   else {
     in = open(argv[1], O_RDONLY);
-    out = 1;
+    out = 1; //open(1, O_WRONLY);
   }
 
   i = j = 0;

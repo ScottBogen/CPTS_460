@@ -10,6 +10,7 @@ char ios[10][2];
 
 int child;
 
+
 int main(int argc, char *argv[ ]) {
 
   int i;
@@ -37,6 +38,10 @@ int main(int argc, char *argv[ ]) {
 
     while(strtok(uinput, args[i], '|', i)) {      // tokenize all the pipes into args[i]
       i++;
+    }
+
+    if (!strcmp(uinput, "logout")) {          // logout
+      break;
     }
 
     int count = i;            // how many different pipes we have
@@ -166,6 +171,7 @@ int handle_IO(char* arg, char* IO) {
   }
 
 
+
   printf("cmd = %s\n\r", cmd);
   printf("file = %s\n\r", file);
 
@@ -173,23 +179,34 @@ int handle_IO(char* arg, char* IO) {
 
   if (!strcmp(IO, ">")) {
     fd = open(file, O_WRONLY|O_CREAT);
-    if (fd<=0) { printf("Couldn't create file %s\n\r", file); return -1; }
+    if (fd<=0) { printf("Couldn't open/create file %s\n\r", file); return -1; }
 
-    close(0);
     dup2(fd ,1);
+    close(fd);
     exec(cmd);
     return 1;
   }
 
   if (!strcmp(IO, ">>")) {
     fd = open(file, O_WRONLY|O_CREAT|O_APPEND);
-    if (fd<=0) { printf("Couldn't create file %s\n\r", file); return -1; }
+    if (fd<=0) { printf("Couldn't open/create file %s\n\r", file); return -1; }
 
-    close(0);
     dup2(fd ,1);
+    close(fd);
     exec(cmd);
     return 1;
   }
+
+  if (!strcmp(IO, "<")) {
+    fd = open(file, O_RDONLY);
+    if (fd<=0) { printf("Couldn't open file %s\n\r", file); return -1; }
+
+    dup2(fd, 0);
+    close(fd);
+    exec(cmd);
+    return 1;
+  }
+
 }
 
 
