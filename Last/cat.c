@@ -15,8 +15,6 @@ int main(int argc, char *argv[ ]) {
 
   int outtty = open(tty, O_WRONLY);
 
-  //close(0);
-  //close(1);
 
 
   // STDIN

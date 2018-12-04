@@ -1,12 +1,5 @@
 /********** test.c file *************/
 
-
-
-
-// TODO: "grep f1 print" will not print newlines anymore, fix it 
-
-
-
 #include "ucode.c"
 
 char buf[1024];
@@ -51,9 +44,6 @@ int main(int argc, char *argv[ ]) {
 
   // make sure pattern is acceptable
   if (!pattern) { return -1; }
-
-  //printf("Grep with in=%d and out=%d\n\r", in, out);
-  //printf("PATTERN: \"%s\"\n\r", pattern);
 
   // find pattern length
   length = 0;
