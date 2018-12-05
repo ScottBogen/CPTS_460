@@ -3,7 +3,11 @@
 char cwd[32];
 char buf2[1024];
 
-//char* records[85];     // floor(1024/12) = 85, max # of records in a block
+
+
+char *t1 = "xwrxwrxwr-------";
+char *t2 = "-----------------";
+
 
 // example call: ls /bin
 int main(int argc, char *argv[ ]) {
@@ -73,10 +77,24 @@ int main(int argc, char *argv[ ]) {
 
 int ls_entry(char* name, struct stat *sp){
 
-  printf("%x  ", sp->st_mode);
+  if (sp->st_mode == 0x41ed) {
+    mputc('d');
+  }
+  else {
+    mputc('-');
+  }
 
+  int i;
+  for (i = 8; i >= 0; i--) {
+    if (sp->st_mode & (1<<i)) {
+      mputc(t1[i]);
+    }
+    else {
+      mputc(t2[i]);
+    }
+  }
 
-  printf("%d  ", sp->st_nlink);
+  printf("  %d  ", sp->st_nlink);
   printf("%d  ", sp->st_uid);
   printf("%d  ", sp->st_gid);
   printf("%d  ", sp->st_size);
