@@ -1,0 +1,16 @@
+sudo ./load init
+sudo ./load login
+sudo ./load sh
+sudo ./load cat
+sudo ./load grep
+sudo ./load l2u
+sudo ./load grep
+sudo ./load ls
+
+
+echo ready to go?
+read dummy
+
+qemu-system-arm -M versatilepb -m 256M -sd sdimage -kernel wanix \
+-serial mon:stdio -serial /dev/pts/0
+

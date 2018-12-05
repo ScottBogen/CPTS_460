@@ -20,7 +20,6 @@ int main(int argc, char *argv[ ]) {
   int in, out, err;
   int passfd, n;
 
-  char* token;
   char name[128];
   char pass[128];
 
@@ -109,10 +108,16 @@ int main(int argc, char *argv[ ]) {
         }
       }
 
+      memset(token, 0, 32);
       strtok(buf, token, 10, toki++);
-      if (toki>5) { // hard coded for now
+
+      if (token[0] == 0) { // fix someday ---- FIXED
         printf("login failed\n\r");
-        return -1;
+        break;
+
+        // rewind to beginning of passwd file
+        close(passfd);
+        passfd = open("/etc/passwd", O_RDONLY); 
       }
     }
   }
