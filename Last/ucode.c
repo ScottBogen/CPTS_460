@@ -82,6 +82,22 @@ int strtok(char* str, char* outstr, char delim, int occurrences) {
   return 1;
 }
 
+int mygetc(int fd)
+{
+   int c, n;
+   n = read(fd, &c, 1);
+
+   /*********************************************************************
+   getc from KBD will NOT get 0 byte but reading file (after redirect 0
+   to file) may get 0 byte ==> MUST return 2-byte -1 to differentiate.
+   **********************************************************************/
+
+   if (n==0 || c==4 || c==0 ) return EOF;
+
+   return (c&0x7F);
+}
+
+
 
 int getc()
 {

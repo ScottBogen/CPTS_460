@@ -2,7 +2,9 @@
 #include "ucode.c"
 
 char buf[1024];
-char buf2[1024];
+char buf2[4096];
+
+
 
 int main(int argc, char *argv[ ]) {
 
@@ -12,7 +14,7 @@ int main(int argc, char *argv[ ]) {
   char tty[32];
   gettty(tty);
 
-  int outtty = open(tty, O_RDWR);
+  int outtty = open(tty, O_WRONLY);
 
 
   int lines=0;
@@ -23,14 +25,12 @@ int main(int argc, char *argv[ ]) {
   if (argc < 2) {
     in = 0;
     out = 1;
+    printf("in=%d, out=%d, fd=%d\n\r",in,out,fd);
   }
   else {
     in = open(argv[1], O_RDONLY);
     out = 1;
   }
-
-  printf("OUTTTY = %d\n\r", outtty);
-
 
 
   // from file
@@ -46,13 +46,8 @@ int main(int argc, char *argv[ ]) {
       }
       if (stopprint) {
         while (1){
-          if (!in) {
-            close(0);
-            open(0);
-          }
-          char c = 0;
-          c = mygetc(outtty);
-          if (c == 13) { break; }
+          char c = getc();
+          if (c == 13) { break;}
           else if (c == ' ') {
             lines = 0;
             stopprint = 0;

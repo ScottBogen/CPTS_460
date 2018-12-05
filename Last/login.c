@@ -61,7 +61,6 @@ int main(int argc, char *argv[ ]) {
 
     int toki = 0;
     char token[256];
-    prints("entering strtok..\n\r");
     int result = strtok(buf, token, 10, toki++);  // token = username
     if (!result) { printf("nothing found!\n\r"); return -1; }
 
