@@ -35,6 +35,9 @@ int main(int argc, char *argv[ ]) {
     printf("\n\r scsh #%d $ ", getpid());       // get user input
     gets(uinput);
 
+    if (uinput[0] == 0) {
+      continue;                 // skip empty user input
+    }
 
     while(strtok(uinput, args[i], '|', i)) {      // tokenize all the pipes into args[i]
       i++;
@@ -64,18 +67,15 @@ int main(int argc, char *argv[ ]) {
       while (args[i][j]) {
         if (args[i][j] == '>') {
           if (args[i][j+1] == '>') {
-            prints("found misdirect >>\n\r");
             strcpy(ios[i], ">>");
             break;
           }
           else {
-            prints("found misdirect >\n\r");
             strcpy(ios[i], ">");
             break;
           }
         }
         else if (args[i][j] == '<') {
-          prints("found misdirect <\n\r");
           strcpy(ios[i], "<");
           break;
         }
@@ -104,12 +104,8 @@ int main(int argc, char *argv[ ]) {
       then do the pipe
     */
 
-
-
-
-
     i = 0;
-    // TODO: forked process isn't killed if there are typos
+
     child = fork();
 
     if (child) {
@@ -119,6 +115,15 @@ int main(int argc, char *argv[ ]) {
 
       if (count == 2) {
         prints("CREATING PIPE\n\r");
+
+        if (ios[0][0] != 0) {
+          handle_IO(args[0], ios[0]);
+        }
+
+        if (ios[1][0] != 0) {
+          handle_IO(args[1], ios[1]);
+        }
+
         do_pipe(args[0], args[1]);      // pipes are handled recursively right to left
                                         // try calling it like do_pipe(args[max])
       }

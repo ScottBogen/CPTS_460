@@ -8,17 +8,16 @@ int main(int argc, char *argv[ ]) {
 
   int fd, n;
   int in, out;
-  in = out = 0;   // just by default
+
   char tty[32];
   gettty(tty);
+  int outtty = open(tty, O_WRONLY);
+  int intty = open(tty, O_RDONLY);
 
-  int outtty = open(tty, O_RDWR);
+  int lines = 0;
+  int stopprint = 0;
 
-
-  int lines=0;
-  int stopprint=0;
-
-  //printf("in my MORE w arg %d\n\r", argc);
+  write(outtty, "Scott's MORE\n\r", 14);
 
   if (argc < 2) {
     in = 0;
@@ -29,9 +28,7 @@ int main(int argc, char *argv[ ]) {
     out = 1;
   }
 
-  printf("OUTTTY = %d\n\r", outtty);
-
-
+  //printf("OUTTTY = %d\n\r", outtty);
 
   // from file
   while ((n = read(in, buf, 1)) == 1) {
@@ -45,20 +42,23 @@ int main(int argc, char *argv[ ]) {
         stopprint=1;
       }
       if (stopprint) {
-        while (1){
-          if (!in) {
-            close(0);
-            open(0);
-          }
+
+        while (1) {
           char c = 0;
-          c = mygetc(outtty);
-          if (c == 13) { break; }
+
+          c = mygetc(intty);    // KC NOTE: mygetc() is in my ucode.c,
+                                // it is simply getc() but you can pass
+                                // in an fd instead of defaulting to stdin
+
+          if (c == 13 || c == 10) { break; }
+
           else if (c == ' ') {
             lines = 0;
             stopprint = 0;
             break;
           }
         }
+
       }
       prints("\r");
     }

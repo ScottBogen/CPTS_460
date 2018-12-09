@@ -1,7 +1,6 @@
 #include "ucode.c"
 
 char buf[1024];
-char buf2[1024];
 char string[128];
 char tty[32];
 
@@ -9,24 +8,24 @@ int main(int argc, char *argv[ ]) {
 
   int n;
   int in, out;
-  int i, j;
+  int i;
 
   gettty(tty);
 
-  int outtty = open(tty, O_WRONLY);
+  int ttyfd = open(tty, O_WRONLY);
 
   // STDIN
   if (argc == 1) {
-    in = 0; //open(0, O_RDONLY);
-    out = 1; //open(1, O_WRONLY);
+    in = 0;
+    out = 1;
   }
   // FILE
   else {
     in = open(argv[1], O_RDONLY);
-    out = 1; //open(1, O_WRONLY);
+    out = 1;
   }
 
-  i = j = 0;
+  i = 0;
   char last;
 
   // main loop -- NOTE: remember that l2u is the same shit so just keep this as experimental and that as master
@@ -35,14 +34,13 @@ int main(int argc, char *argv[ ]) {
     if (n < 1) { break; }         // if no data, break
     string[i] = buf[0];
 
-    if (!in) { } //write(outtty, buf, 1); }
-    write(out, buf, 1);
+    if (!in) { write(ttyfd, buf, 1); }
 
-    if (string[i] == 10) {     // 10 == '\n';
+    if (string[i] == '\n') {     // 10 == '\n';
       string[++i] = '\r';        // 13 == '\r';
 
-      //write(out, string, i);
-      write(outtty, "\r", 1);     // to bring the shit back without filling up string
+      write(out, string, i);
+      write(ttyfd, "\r", 1);     // to bring the shit back without filling up string
 
       memset(string, 0, 128);
       i = 0;
@@ -52,8 +50,8 @@ int main(int argc, char *argv[ ]) {
     else if (string[i] == 13 && !in) {
       string[i++] = 10;
       string[i++] = 13;
-      write(outtty, "\r\n", 2);     // to bring the shit back without filling up string
-      //write(out, string, i);
+      write(ttyfd, "\n\r", 2);     // to bring the shit back without filling up string
+      write(out, string, i);
       memset(string, 0, 128);
       i = 0;
     }
@@ -63,5 +61,5 @@ int main(int argc, char *argv[ ]) {
     }
   }
 
-  close(in); close(out); close(outtty);
+  close(in); close(out); close(ttyfd);
 }

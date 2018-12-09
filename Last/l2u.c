@@ -70,8 +70,8 @@ int main(int argc, char *argv[ ]) {
 
     // STDIN user presses "enter"
     else if (string[i] == 13 && !in) {
-      string[i++] = 10;
-      string[i++] = 13;
+      string[i++] = 10; //'\n'
+      string[i++] = 13; //'\r'
       write(outtty, "\r\n", 2);     // to bring the shit back without filling up string
       write(out, string, i);
       memset(string, 0, 128);

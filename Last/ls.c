@@ -54,7 +54,7 @@ int main(int argc, char *argv[ ]) {
 
   while (cp < buf2 + 1024) {
     memset(copy, 0, 32);
-    strcpy(copy, dp->name);
+    strncpy(copy, dp->name, dp->name_len);
     strcat(copy, "\0");
 
     if ((r = stat(copy, sbuf)) < 0) {
