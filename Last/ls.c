@@ -3,8 +3,6 @@
 char cwd[32];
 char buf2[1024];
 
-
-
 char *t1 = "xwrxwrxwr-------";
 char *t2 = "-----------------";
 
@@ -19,22 +17,17 @@ int main(int argc, char *argv[ ]) {
 
   sbuf = &mystat;
 
-
-  // clear records
-  for (i = 0; i < 85; i++){
-    //records[i] = 0;
-  }
-
   getcwd(cwd);
   if (argc > 1) {
     fd = open(argv[1], O_RDONLY);
-    strcpy(cwd, argv[1]);
+    strcpy(cwd, argv[1]);     // set "cwd" string to argv1
   }
   else {
     fd = open(cwd, O_RDONLY);
   }
 
-  chdir(cwd);
+
+  chdir(cwd); // cd cwd
   printf("cwd = %s\n", cwd);
 
 
@@ -54,7 +47,7 @@ int main(int argc, char *argv[ ]) {
 
   while (cp < buf2 + 1024) {
     memset(copy, 0, 32);
-    strncpy(copy, dp->name, dp->name_len);
+    strncpy(copy, dp->name, dp->name_len);      //
     strcat(copy, "\0");
 
     if ((r = stat(copy, sbuf)) < 0) {
@@ -64,8 +57,7 @@ int main(int argc, char *argv[ ]) {
       ls_entry(copy, sbuf);
     }
 
-    //strcpy(records[i], dp->name);
-    cp += dp->rec_len;
+    cp += dp->rec_len;      // advance cp to next record
     dp = (DIR*)cp;
     i++;
   }
@@ -77,6 +69,7 @@ int main(int argc, char *argv[ ]) {
 
 int ls_entry(char* name, struct stat *sp){
 
+  // type
   if (sp->st_mode == 0x41ed) {
     mputc('d');
   }
@@ -84,6 +77,7 @@ int ls_entry(char* name, struct stat *sp){
     mputc('-');
   }
 
+  // perm bits
   int i;
   for (i = 8; i >= 0; i--) {
     if (sp->st_mode & (1<<i)) {
@@ -94,6 +88,7 @@ int ls_entry(char* name, struct stat *sp){
     }
   }
 
+  // rest
   printf("  %d  ", sp->st_nlink);
   printf("%d  ", sp->st_uid);
   printf("%d  ", sp->st_gid);

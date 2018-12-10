@@ -1,13 +1,12 @@
 /********** login.c file *************/
 
 /*
-  passwd file:
+                      NOTE
 
-  root:12345:0:0:super user:/:sh\n
-  kcw:abcde:1:1:kcw user:/user/kcw:sh\n
-  ...
+    I wrote my own strtok, you can find it in ucode.c
+    ex: strtok(input_string, output_string, char delimiter, int occurrence);
 
-  username:password:uid:gid:alias mode:directory:execcmd
+    The result is stored in output_buffer
 
 */
 
@@ -20,8 +19,8 @@ int main(int argc, char *argv[ ]) {
   int in, out, err;
   int passfd, n;
 
-  char name[128];
-  char pass[128];
+  char name[128];     // stores username
+  char pass[128];     // stores password (from passwd file)
 
   if (argc < 2) {
     printf("ERRNO [0]: Fewer than 2 arguments.\n");
@@ -29,28 +28,27 @@ int main(int argc, char *argv[ ]) {
     return -1;
   }
 
-  // 1. close file descriptors 0,1 inherited from INIT
+  // close file descriptors 0,1 inherited from INIT
   close(0);
   close(1);
 
-  // 2. open argv[1] 3 times as in(0), out(1), err(2)
-  in =  open(argv[1], 0);
+  // open argv[1] 3 times as in(0), out(1), err(2)
+  in =  open(argv[1], 0);   // argv1 = /dev/tty...
   out = open(argv[1], 1);
   err = open(argv[1], 2);
 
-  // 3. settty(argv[1]); // set tty name string in PROC.tty
+  // set tty name string in PROC.tty, ex: "/dev/tty0"
   settty(argv[1]);
 
-  // 4. open /etc/passwd file for READ
+  // open /etc/passwd file for READ
   passfd = open("/etc/passwd", O_RDONLY);
-  while (1) {
-    // 5.  printf("login"); gets(name);
-    //     printf("pass"); gets(pass);
-    prints("login:\n\r"); gets(name);
-    prints("password:\n\r"); gets(pass);
-    prints("%s\n\r");
 
-    n = read(passfd, buf, 4096);
+  while (1) {
+
+    prints("username:\n\r"); gets(name);        // get username
+    prints("password:\n\r"); gets(pass);     // get password
+
+    n = read(passfd, buf, 1024);        // read passfd file
 
     if (n <= 0) {
       prints("ERRNO [1]: no passwords found.\n");
@@ -58,19 +56,22 @@ int main(int argc, char *argv[ ]) {
       return -1;
     }
 
-    int toki = 0;
+    int toki = 0;       // apparently what I named an iterator
     char token[256];
-    int result = strtok(buf, token, 10, toki++);  // token = username
+    int result = strtok(buf, token, '\n', toki++);  // token = username
     if (!result) { printf("nothing found!\n\r"); return -1; }
 
     // for each line in /etc/passwd do:
     while (token) {
       char token_name[32];
       strtok(token, token_name, ':', 0);
+
       if (!strcmp(token_name,name)) {
         char token_pass[32];
         strtok(token, token_pass, ':', 1);
         printf("pass = %s\n\r", token_pass);
+
+        // if password matches:
         if (!strcmp(token_pass, pass)) {
           //username:password:uid:gid:alias mode:directory:execcmd
           char uid[16];
@@ -102,7 +103,7 @@ int main(int argc, char *argv[ ]) {
 
           close(passfd); //close(1); close(2); close(3);
 
-          printf("Welcome %s. Taking you to %s\n\r", alias, directory);
+          printf("Welcome %s. Taking you to %s\n\r", token_name, directory);
           exec(execcmd);
           return 1;
         }
@@ -117,7 +118,7 @@ int main(int argc, char *argv[ ]) {
 
         // rewind to beginning of passwd file
         close(passfd);
-        passfd = open("/etc/passwd", O_RDONLY); 
+        passfd = open("/etc/passwd", O_RDONLY);
       }
     }
   }

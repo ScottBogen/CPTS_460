@@ -1,4 +1,4 @@
-/********** test.c file *************/
+/********** more.c file *************/
 #include "ucode.c"
 
 char buf[1024];
@@ -28,12 +28,10 @@ int main(int argc, char *argv[ ]) {
     out = 1;
   }
 
-  //printf("OUTTTY = %d\n\r", outtty);
+  // main loop
+  while ((n = read(in, buf, 1)) == 1) {   // read in 1 byte
 
-  // from file
-  while ((n = read(in, buf, 1)) == 1) {
-
-    if (!in) { write(outtty, buf, 1); }
+    if (!in) { write(outtty, buf, 1); }   // if stdin, spit it back out
     else { write(out, buf, 1); }
 
     if (buf[0] == '\n') {
@@ -50,7 +48,7 @@ int main(int argc, char *argv[ ]) {
                                 // it is simply getc() but you can pass
                                 // in an fd instead of defaulting to stdin
 
-          if (c == 13 || c == 10) { break; }
+          if (c == '\n' || c == '\r') { break; }
 
           else if (c == ' ') {
             lines = 0;
@@ -58,7 +56,6 @@ int main(int argc, char *argv[ ]) {
             break;
           }
         }
-
       }
       prints("\r");
     }

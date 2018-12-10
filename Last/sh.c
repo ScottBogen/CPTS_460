@@ -1,12 +1,22 @@
 /********** test.c file *************/
 #include "ucode.c"
 
+
+/*
+              NOTE
+
+    sh supports io redirection and 1 pipe,
+    but not simultaneously
+
+*/
+
+
 char buf[1024];
 char uinput[128];
 
 // used to be local
-char args[10][32];
-char ios[10][2];
+char args[10][32];  // user arguments tokenized by pipe: "cat f" "grep print" "more" ...
+char ios[10][2];    // io redirections corresponding to args: "" ">>" ""
 
 int child;
 
@@ -17,8 +27,6 @@ int main(int argc, char *argv[ ]) {
   int n;
   int in, out;
   int status;
-  int shpid = getpid();
-  int pid;
   char tty[32];
   gettty(tty);
 
@@ -39,12 +47,13 @@ int main(int argc, char *argv[ ]) {
       continue;                 // skip empty user input
     }
 
-    while(strtok(uinput, args[i], '|', i)) {      // tokenize all the pipes into args[i]
-      i++;
-    }
-
     if (!strcmp(uinput, "logout")) {          // logout
       break;
+    }
+
+
+    while(strtok(uinput, args[i], '|', i)) {      // tokenize all the pipes into args[i]
+      i++;
     }
 
     int count = i;            // how many different pipes we have
@@ -56,9 +65,9 @@ int main(int argc, char *argv[ ]) {
 
     // remove spaces from the start
     for (; i >= 0; i--) {
-      cp = args[i];
+      cp = args[i];               // cp = "grep printf"
       len = 0;
-      while(*cp == ' ') { cp++; }
+      while(*cp == ' ') { cp++; }     // skip spaces
       strcpy(args[i], cp);
       printf("args[%d] = %s\n\r", i, args[i]);
 
@@ -66,16 +75,16 @@ int main(int argc, char *argv[ ]) {
       int j = 0;
       while (args[i][j]) {
         if (args[i][j] == '>') {
-          if (args[i][j+1] == '>') {
+          if (args[i][j+1] == '>') {      // if it's an append
             strcpy(ios[i], ">>");
             break;
           }
           else {
-            strcpy(ios[i], ">");
+            strcpy(ios[i], ">");          // if it's a create
             break;
           }
         }
-        else if (args[i][j] == '<') {
+        else if (args[i][j] == '<') {     // if it takes inputs
           strcpy(ios[i], "<");
           break;
         }
@@ -85,7 +94,7 @@ int main(int argc, char *argv[ ]) {
 
     i = 0;
     for (i = 0; i < 3; i++) {
-      printf("args[i] = %s\t", args[i]);
+      printf("args[i] = %s\t", args[i]);    // just printing them out
       printf("ios[i] = %s\n\r", ios[i]);
     }
 
@@ -142,6 +151,8 @@ int main(int argc, char *argv[ ]) {
   }
 }
 
+
+// ex input: "cat f > f2", ">"
 int handle_IO(char* arg, char* IO) {
   // split into cmd and file
   char cmd[32];
@@ -154,21 +165,26 @@ int handle_IO(char* arg, char* IO) {
   memset(cmd, 0, 32);
   memset(file, 0, 32);
 
+
+  // put the raw cmd "cat f" into cmd[]
   while(arg[i]) {
-    if (arg[i] == '<' || arg[i] == '>') {
+    if (arg[i] == '<' || arg[i] == '>') {   // skip io things
       i++;
       break;
     }
     else {
-      cmd[i] = arg[i];
+      cmd[i] = arg[i];      // normal chars
     }
     i++;
   }
 
   int j = 0;
-  while (arg[i] == '>' || arg[i] == ' ') {
+  while (arg[i] == '>' || arg[i] == ' ') {    // skip past any more junk
     i++;
   }
+
+
+  // put the filename "f" into file[]
   while (arg[i] && arg[i] != ' ') {
     file[j] = arg[i];
     j++;
@@ -182,39 +198,39 @@ int handle_IO(char* arg, char* IO) {
 
   strcpy(arg, cmd);
 
+
+  // handle IO redirections for real
   if (!strcmp(IO, ">")) {
-    fd = open(file, O_WRONLY|O_CREAT);
+    fd = open(file, O_WRONLY|O_CREAT);      // open for create|write (bitwise)
     if (fd<=0) { printf("Couldn't open/create file %s\n\r", file); return -1; }
 
-    dup2(fd ,1);
-    close(fd);
-    exec(cmd);
+    dup2(fd, 1);    // dup "file"'s ' file descriptor to 1, fd1 is now "fd"
+                    // redirect stdout to file
+    close(fd);      // close "fd"
+    exec(cmd);      // execute the command
     return 1;
   }
 
   if (!strcmp(IO, ">>")) {
-    fd = open(file, O_WRONLY|O_CREAT|O_APPEND);
+    fd = open(file, O_WRONLY|O_CREAT|O_APPEND);   // open for create|write|append
     if (fd<=0) { printf("Couldn't open/create file %s\n\r", file); return -1; }
 
-    dup2(fd ,1);
+    dup2(fd, 1);
     close(fd);
     exec(cmd);
     return 1;
   }
 
   if (!strcmp(IO, "<")) {
-    fd = open(file, O_RDONLY);
+    fd = open(file, O_RDONLY);       // open for rdonly
     if (fd<=0) { printf("Couldn't open file %s\n\r", file); return -1; }
 
-    dup2(fd, 0);
+    dup2(fd, 0);    // same deal except we redirect stdin instead
     close(fd);
     exec(cmd);
     return 1;
   }
-
 }
-
-
 
 
 int do_pipe(char* cmd1, char* cmd2){          // consider changing to do_pipe(char* args[max]) and going backwards
@@ -222,7 +238,7 @@ int do_pipe(char* cmd1, char* cmd2){          // consider changing to do_pipe(ch
   int status;
   pipe(pd);     // create a pipe: pd[0] = READ, pd[1] = WRITE
   pid = fork();         // fork a child to share the pipe
-  if (pid) {            //parent: as pipe READER
+  if (pid) {            // parent: as pipe READER
     close(pd[1]);       // close pipe WRITE end
     dup2(pd[0], 0);     // redirect stdin to pipe READ end
     exec(cmd2);
